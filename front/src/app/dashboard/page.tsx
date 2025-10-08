@@ -116,9 +116,10 @@ export default function DashboardRealPage() {
 
       console.log('📊 Cargando datos del dashboard...');
 
-      // Cargar estadísticas generales
+      // Cargar estadísticas generales con timeout
       const statsResponse = await fetch('http://localhost:8000/estadisticas/generales', {
-        headers
+        headers,
+        signal: AbortSignal.timeout(5000) // Timeout de 5 segundos
       });
 
       if (!statsResponse.ok) {
@@ -155,6 +156,31 @@ export default function DashboardRealPage() {
 
     } catch (err: any) {
       console.error('❌ Error cargando dashboard:', err);
+      
+      // Si es un error de red (backend apagado), redirigir al login
+      if (err.name === 'TypeError' && err.message.includes('fetch')) {
+        console.error('🔴 Backend no disponible - redirigiendo al login');
+        localStorage.removeItem('auth_credentials');
+        localStorage.removeItem('user_data');
+        setError('Servidor no disponible. Redirigiendo al login...');
+        setTimeout(() => {
+          router.push('/login');
+        }, 2000);
+        return;
+      }
+      
+      // Si es timeout
+      if (err.name === 'TimeoutError') {
+        console.error('⏰ Timeout del servidor - redirigiendo al login');
+        localStorage.removeItem('auth_credentials');
+        localStorage.removeItem('user_data');
+        setError('Servidor no responde. Redirigiendo al login...');
+        setTimeout(() => {
+          router.push('/login');
+        }, 2000);
+        return;
+      }
+      
       setError(err.message || 'Error cargando datos');
     } finally {
       setLoading(false);

@@ -103,9 +103,10 @@ export default function SiniestrosPage() {
 
       console.log('📊 Cargando datos de siniestros...');
 
-      // Cargar siniestros
+      // Cargar siniestros con timeout
       const siniestrosResponse = await fetch('http://localhost:8000/siniestros', {
-        headers
+        headers,
+        signal: AbortSignal.timeout(5000) // Timeout de 5 segundos
       });
 
       if (!siniestrosResponse.ok) {
@@ -127,7 +128,32 @@ export default function SiniestrosPage() {
       console.log('✅ Datos cargados exitosamente');
 
     } catch (err: any) {
-      console.error('❌ Error cargando datos:', err);
+      console.error('❌ Error cargando datos de siniestros:', err);
+      
+      // Si es un error de red (backend apagado), redirigir al login
+      if (err.name === 'TypeError' && err.message.includes('fetch')) {
+        console.error('🔴 Backend no disponible - redirigiendo al login');
+        localStorage.removeItem('auth_credentials');
+        localStorage.removeItem('user_data');
+        setError('Servidor no disponible. Redirigiendo al login...');
+        setTimeout(() => {
+          router.push('/login');
+        }, 2000);
+        return;
+      }
+      
+      // Si es timeout
+      if (err.name === 'TimeoutError') {
+        console.error('⏰ Timeout del servidor - redirigiendo al login');
+        localStorage.removeItem('auth_credentials');
+        localStorage.removeItem('user_data');
+        setError('Servidor no responde. Redirigiendo al login...');
+        setTimeout(() => {
+          router.push('/login');
+        }, 2000);
+        return;
+      }
+      
       setError(err.message || 'Error cargando datos');
     } finally {
       setLoading(false);

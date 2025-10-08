@@ -2,6 +2,7 @@
 
 import DashboardLayout from '../../components/DashboardLayout';
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import axios from 'axios';
 import { 
   FiBarChart, 
@@ -57,6 +58,7 @@ api.interceptors.request.use((config) => {
 });
 
 export default function EstadisticasPage() {
+  const router = useRouter();
   const [periodoSeleccionado, setPeriodoSeleccionado] = useState('2024');
   const [actualizando, setActualizando] = useState(false);
   const [cargando, setCargando] = useState(true);
@@ -79,16 +81,30 @@ export default function EstadisticasPage() {
       setCargando(true);
       
       const [estadisticasRes, porTipoRes, sucursalesRes] = await Promise.all([
-        api.get<EstadisticasGenerales>('/estadisticas/generales'),
-        api.get<EstadisticaPorTipo[]>('/estadisticas/por-tipo'),
-        api.get<Sucursal[]>('/vista_sucursales')
+        api.get<EstadisticasGenerales>('/estadisticas/generales', { timeout: 5000 }),
+        api.get<EstadisticaPorTipo[]>('/estadisticas/por-tipo', { timeout: 5000 }),
+        api.get<Sucursal[]>('/vista_sucursales', { timeout: 5000 })
       ]);
 
       setEstadisticasGenerales(estadisticasRes.data);
       setEstadisticasPorTipo(Array.isArray(porTipoRes.data) ? porTipoRes.data : []);
       setSucursales(Array.isArray(sucursalesRes.data) ? sucursalesRes.data : []);
-    } catch (error) {
-      console.error('Error cargando datos:', error);
+    } catch (error: any) {
+      console.error('❌ Error cargando datos de estadísticas:', error);
+      
+      // Si es un error de red o timeout (backend apagado)
+      if (error.code === 'ECONNREFUSED' || error.code === 'TIMEOUT' || 
+          (error.response && error.response.status >= 500) ||
+          error.message?.includes('Network Error') ||
+          error.message?.includes('timeout')) {
+        console.error('🔴 Backend no disponible - redirigiendo al login');
+        localStorage.removeItem('auth_credentials');
+        localStorage.removeItem('user_data');
+        alert('Servidor no disponible. Serás redirigido al login.');
+        router.push('/login');
+        return;
+      }
+      
       // En caso de error, asegurar que los arrays estén vacíos pero válidos
       setEstadisticasPorTipo([]);
       setSucursales([]);

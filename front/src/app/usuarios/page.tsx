@@ -298,7 +298,7 @@ export default function UsuariosPage() {
               <input
                 type="text"
                 placeholder="Buscar usuarios..."
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 placeholder-gray-600 text-gray-900"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
@@ -307,11 +307,11 @@ export default function UsuariosPage() {
             <div className="relative">
               <FiFilter className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
               <select
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 appearance-none"
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 appearance-none text-gray-900"
                 value={filtroRol}
                 onChange={(e) => setFiltroRol(e.target.value)}
               >
-                <option value="">Todos los roles</option>
+                <option value="" className="text-gray-600">Todos los roles</option>
                 {roles.map(rol => (
                   <option key={rol.value} value={rol.value}>{rol.label}</option>
                 ))}
@@ -453,7 +453,7 @@ export default function UsuariosPage() {
                     type="text"
                     value={nuevoUsuario.nombre}
                     onChange={(e) => setNuevoUsuario({...nuevoUsuario, nombre: e.target.value})}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 placeholder-gray-600 text-gray-900"
                     placeholder="Nombre"
                   />
                 </div>
@@ -466,7 +466,7 @@ export default function UsuariosPage() {
                     type="text"
                     value={nuevoUsuario.apellido}
                     onChange={(e) => setNuevoUsuario({...nuevoUsuario, apellido: e.target.value})}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 placeholder-gray-600 text-gray-900"
                     placeholder="Apellido"
                   />
                 </div>
@@ -479,7 +479,7 @@ export default function UsuariosPage() {
                     type="email"
                     value={nuevoUsuario.email}
                     onChange={(e) => setNuevoUsuario({...nuevoUsuario, email: e.target.value})}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 placeholder-gray-600 text-gray-900"
                     placeholder="email@ejemplo.com"
                   />
                 </div>
@@ -492,7 +492,7 @@ export default function UsuariosPage() {
                     type="tel"
                     value={nuevoUsuario.telefono}
                     onChange={(e) => setNuevoUsuario({...nuevoUsuario, telefono: e.target.value})}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 placeholder-gray-600 text-gray-900"
                     placeholder="+34 666 123 456"
                   />
                 </div>
@@ -539,7 +539,7 @@ export default function UsuariosPage() {
                           type={mostrarPassword ? 'text' : 'password'}
                           value={nuevoUsuario.password}
                           onChange={(e) => setNuevoUsuario({...nuevoUsuario, password: e.target.value})}
-                          className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                          className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 placeholder-gray-600 text-gray-900"
                           placeholder="Contraseña"
                         />
                         <button
@@ -560,7 +560,7 @@ export default function UsuariosPage() {
                         type={mostrarPassword ? 'text' : 'password'}
                         value={nuevoUsuario.confirmPassword}
                         onChange={(e) => setNuevoUsuario({...nuevoUsuario, confirmPassword: e.target.value})}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 placeholder-gray-600 text-gray-900"
                         placeholder="Confirmar contraseña"
                       />
                     </div>

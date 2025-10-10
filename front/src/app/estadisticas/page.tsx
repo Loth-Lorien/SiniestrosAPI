@@ -27,18 +27,20 @@ interface EstadisticasGenerales {
 }
 
 interface EstadisticaPorTipo {
-  TipoSiniestro: string;
-  Cuenta: number;
+  tipo_siniestro: string;
+  cantidad: number;
+  monto_total: number;
+  porcentaje_del_total: number;
 }
 
-interface Sucursal {
-  IdSucursal: number;
-  NombreSucursal: string;
-  Direccion: string;
-  Telefono: string;
-  Gerente: string;
-  siniestros_count?: number;
-  promedio_recuperacion?: number;
+interface EstadisticaPorZona {
+  zona: string;
+  cantidad_siniestros: number;
+  monto_total_perdidas: number;
+  tipo_siniestro_frecuente: string;
+  tipo_perdida_frecuente: string;
+  sucursales_en_zona: number;
+  porcentaje_del_total: number;
 }
 
 // Configurar axios
@@ -66,7 +68,7 @@ export default function EstadisticasPage() {
   // Estados para los datos reales
   const [estadisticasGenerales, setEstadisticasGenerales] = useState<EstadisticasGenerales | null>(null);
   const [estadisticasPorTipo, setEstadisticasPorTipo] = useState<EstadisticaPorTipo[]>([]);
-  const [sucursales, setSucursales] = useState<Sucursal[]>([]);
+  const [estadisticasPorZona, setEstadisticasPorZona] = useState<EstadisticaPorZona[]>([]);
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('es-MX', {
@@ -80,15 +82,20 @@ export default function EstadisticasPage() {
     try {
       setCargando(true);
       
-      const [estadisticasRes, porTipoRes, sucursalesRes] = await Promise.all([
+      const [estadisticasRes, porTipoRes, porZonaRes] = await Promise.all([
         api.get<EstadisticasGenerales>('/estadisticas/generales', { timeout: 5000 }),
         api.get<EstadisticaPorTipo[]>('/estadisticas/por-tipo', { timeout: 5000 }),
-        api.get<Sucursal[]>('/vista_sucursales', { timeout: 5000 })
+        api.get<EstadisticaPorZona[]>('/estadisticas/por-zona', { timeout: 5000 })
       ]);
+
+      console.log('📊 Datos recibidos:');
+      console.log('- Estadísticas generales:', estadisticasRes.data);
+      console.log('- Por tipo:', porTipoRes.data);
+      console.log('- Por zona:', porZonaRes.data);
 
       setEstadisticasGenerales(estadisticasRes.data);
       setEstadisticasPorTipo(Array.isArray(porTipoRes.data) ? porTipoRes.data : []);
-      setSucursales(Array.isArray(sucursalesRes.data) ? sucursalesRes.data : []);
+      setEstadisticasPorZona(Array.isArray(porZonaRes.data) ? porZonaRes.data : []);
     } catch (error: any) {
       console.error('❌ Error cargando datos de estadísticas:', error);
       
@@ -107,7 +114,7 @@ export default function EstadisticasPage() {
       
       // En caso de error, asegurar que los arrays estén vacíos pero válidos
       setEstadisticasPorTipo([]);
-      setSucursales([]);
+      setEstadisticasPorZona([]);
     } finally {
       setCargando(false);
     }
@@ -126,7 +133,7 @@ export default function EstadisticasPage() {
   };
 
   const maxPorTipo = Array.isArray(estadisticasPorTipo) && estadisticasPorTipo.length > 0 
-    ? Math.max(...estadisticasPorTipo.map(item => item.Cuenta), 1)
+    ? Math.max(...estadisticasPorTipo.map(item => item.cantidad), 1)
     : 1;
 
   if (cargando) {
@@ -156,12 +163,12 @@ export default function EstadisticasPage() {
             <select
               value={periodoSeleccionado}
               onChange={(e) => setPeriodoSeleccionado(e.target.value)}
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900"
             >
-              <option value="2024">Año 2024</option>
-              <option value="2023">Año 2023</option>
-              <option value="ultimo_trimestre">Último Trimestre</option>
-              <option value="ultimo_mes">Último Mes</option>
+              <option value="2024" className="text-gray-900">Año 2024</option>
+              <option value="2023" className="text-gray-900">Año 2023</option>
+              <option value="ultimo_trimestre" className="text-gray-900">Último Trimestre</option>
+              <option value="ultimo_mes" className="text-gray-900">Último Mes</option>
             </select>
 
             <button 
@@ -242,21 +249,19 @@ export default function EstadisticasPage() {
             <div className="space-y-4">
               {Array.isArray(estadisticasPorTipo) && estadisticasPorTipo.length > 0 ? (
                 estadisticasPorTipo.map((item, index) => {
-                  const porcentaje = estadisticasGenerales?.total_siniestros ? 
-                    ((item.Cuenta / estadisticasGenerales.total_siniestros) * 100).toFixed(1) : '0';
                   return (
                     <div key={index} className="space-y-2">
                       <div className="flex items-center justify-between text-sm">
-                        <span className="font-medium text-gray-700">{item.TipoSiniestro}</span>
+                        <span className="font-medium text-gray-700">{item.tipo_siniestro}</span>
                         <div className="text-right">
-                          <span className="font-bold text-gray-900">{item.Cuenta}</span>
-                          <span className="text-gray-500 ml-2">({porcentaje}%)</span>
+                          <span className="font-bold text-gray-900">{item.cantidad}</span>
+                          <span className="text-gray-500 ml-2">({item.porcentaje_del_total.toFixed(1)}%)</span>
                         </div>
                       </div>
                       <div className="w-full bg-gray-200 rounded-full h-2">
                         <div 
                           className="bg-blue-600 h-2 rounded-full transition-all duration-500"
-                          style={{ width: `${maxPorTipo > 0 ? (item.Cuenta / maxPorTipo) * 100 : 0}%` }}
+                          style={{ width: `${maxPorTipo > 0 ? (item.cantidad / maxPorTipo) * 100 : 0}%` }}
                         ></div>
                       </div>
                     </div>
@@ -311,63 +316,87 @@ export default function EstadisticasPage() {
           </div>
         </div>
 
-        {/* Estadísticas por Sucursal */}
+        {/* Análisis por Zona */}
         <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-          <div className="px-6 py-4 bg-gray-50 border-b border-gray-200">
+          <div className="px-6 py-4 bg-gradient-to-r from-purple-50 to-blue-50 border-b border-gray-200">
             <div className="flex items-center justify-between">
-              <h3 className="text-lg font-semibold text-gray-900">Análisis por Sucursal</h3>
-              <FiMapPin className="w-5 h-5 text-gray-500" />
+              <h3 className="text-xl font-semibold text-gray-900">Análisis por Zona Geográfica</h3>
+              <FiMapPin className="w-6 h-6 text-purple-600" />
             </div>
+            <p className="text-sm text-gray-600 mt-1">Distribución de siniestros, pérdidas y tipos por zona</p>
           </div>
 
           <div className="p-6">
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="text-left border-b border-gray-200">
-                    <th className="pb-3 text-sm font-medium text-gray-600">Sucursal</th>
-                    <th className="pb-3 text-sm font-medium text-gray-600">Siniestros</th>
-                    <th className="pb-3 text-sm font-medium text-gray-600">Gerente</th>
-                    <th className="pb-3 text-sm font-medium text-gray-600">% Recuperación</th>
-                    <th className="pb-3 text-sm font-medium text-gray-600">Progreso</th>
-                  </tr>
-                </thead>
-                <tbody className="space-y-3">
-                  {Array.isArray(sucursales) && sucursales.length > 0 ? (
-                    sucursales.map((sucursal, index) => (
-                      <tr key={index} className="border-b border-gray-100 last:border-b-0">
-                        <td className="py-3 font-medium text-gray-900">{sucursal.NombreSucursal}</td>
-                        <td className="py-3 text-gray-700">{sucursal.siniestros_count || 0}</td>
-                        <td className="py-3 text-gray-600">{sucursal.Gerente}</td>
-                        <td className="py-3">
-                          <span className="inline-flex items-center px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
-                            {sucursal.promedio_recuperacion?.toFixed(1) || '0'}%
-                          </span>
-                        </td>
-                        <td className="py-3">
-                          <div className="w-24 bg-gray-200 rounded-full h-2">
-                            <div 
-                              className="bg-blue-600 h-2 rounded-full"
-                              style={{ 
-                                width: `${Array.isArray(sucursales) && sucursales.length > 0 ? 
-                                  ((sucursal.siniestros_count || 0) / Math.max(...sucursales.map(s => s.siniestros_count || 0), 1)) * 100 
-                                  : 0}%` 
-                              }}
-                            ></div>
-                          </div>
-                        </td>
-                      </tr>
-                    ))
-                  ) : (
-                    <tr>
-                      <td colSpan={5} className="py-6 text-center text-gray-500">
-                        No hay datos de sucursales disponibles
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
+            {Array.isArray(estadisticasPorZona) && estadisticasPorZona.length > 0 ? (
+              <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+                {estadisticasPorZona.map((zona, index) => (
+                  <div key={index} className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-lg p-6 border border-gray-200 hover:shadow-md transition-shadow">
+                    
+                    {/* Header de la zona */}
+                    <div className="flex items-center justify-between mb-4">
+                      <h4 className="text-lg font-bold text-gray-900">{zona.zona}</h4>
+                      <span className="px-3 py-1 bg-purple-100 text-purple-800 rounded-full text-sm font-medium">
+                        {zona.porcentaje_del_total.toFixed(1)}%
+                      </span>
+                    </div>
+
+                    {/* Métricas principales */}
+                    <div className="grid grid-cols-2 gap-4 mb-4">
+                      <div className="text-center p-3 bg-white rounded-lg">
+                        <div className="text-2xl font-bold text-blue-600">{zona.cantidad_siniestros}</div>
+                        <div className="text-xs text-gray-500">Siniestros</div>
+                      </div>
+                      <div className="text-center p-3 bg-white rounded-lg">
+                        <div className="text-lg font-bold text-green-600">
+                          ${zona.monto_total_perdidas.toLocaleString('es-ES', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                        </div>
+                        <div className="text-xs text-gray-500">Pérdidas</div>
+                      </div>
+                    </div>
+
+                    {/* Información detallada */}
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between p-2 bg-white rounded">
+                        <span className="text-sm font-medium text-gray-600">Sucursales:</span>
+                        <span className="text-sm font-bold text-gray-900">{zona.sucursales_en_zona}</span>
+                      </div>
+                      
+                      <div className="p-3 bg-orange-50 rounded-lg border-l-4 border-orange-400">
+                        <div className="text-xs font-medium text-orange-700 mb-1">Siniestro Frecuente:</div>
+                        <div className="text-sm font-bold text-orange-900">{zona.tipo_siniestro_frecuente}</div>
+                      </div>
+                      
+                      <div className="p-3 bg-red-50 rounded-lg border-l-4 border-red-400">
+                        <div className="text-xs font-medium text-red-700 mb-1">Pérdida Frecuente:</div>
+                        <div className="text-sm font-bold text-red-900">{zona.tipo_perdida_frecuente}</div>
+                      </div>
+                    </div>
+
+                    {/* Barra de progreso relativo */}
+                    <div className="mt-4">
+                      <div className="flex items-center justify-between text-xs text-gray-500 mb-1">
+                        <span>Actividad relativa</span>
+                        <span>{zona.porcentaje_del_total.toFixed(1)}%</span>
+                      </div>
+                      <div className="w-full bg-gray-200 rounded-full h-2">
+                        <div 
+                          className="bg-gradient-to-r from-purple-500 to-blue-600 h-2 rounded-full transition-all duration-700"
+                          style={{ 
+                            width: `${Math.min(zona.porcentaje_del_total * 2, 100)}%`
+                          }}
+                        ></div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-12">
+                <FiMapPin className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-gray-900 mb-2">No hay datos por zona</h3>
+                <p className="text-gray-500">No se encontraron estadísticas de zona disponibles</p>
+              </div>
+            )}
           </div>
         </div>
 

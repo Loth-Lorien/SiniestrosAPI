@@ -15,7 +15,9 @@ import {
   FiX,
   FiEye,
   FiEdit3,
-  FiPlus
+  FiPlus,
+  FiChevronLeft,
+  FiChevronRight
 } from 'react-icons/fi';
 
 interface Sucursal {
@@ -40,6 +42,10 @@ export default function SucursalesPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedZona, setSelectedZona] = useState('');
   const [selectedEstado, setSelectedEstado] = useState('');
+  
+  // Paginación
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(50);
 
   // Verificar autenticación al cargar
   useEffect(() => {
@@ -156,6 +162,36 @@ export default function SucursalesPage() {
     return matchesSearch && matchesZona && matchesEstado;
   });
 
+  // Calcular paginación
+  const totalPages = Math.ceil(filteredSucursales.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedSucursales = filteredSucursales.slice(startIndex, endIndex);
+
+  // Resetear página actual si se sale del rango
+  useEffect(() => {
+    if (currentPage > totalPages && totalPages > 0) {
+      setCurrentPage(1);
+    }
+  }, [totalPages, currentPage]);
+
+  // Resetear página cuando cambien los filtros
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, selectedZona, selectedEstado]);
+
+  const handlePreviousPage = () => {
+    setCurrentPage(prev => Math.max(prev - 1, 1));
+  };
+
+  const handleNextPage = () => {
+    setCurrentPage(prev => Math.min(prev + 1, totalPages));
+  };
+
+  const handlePageClick = (page: number) => {
+    setCurrentPage(page);
+  };
+
 
 
   if (loading) {
@@ -182,7 +218,16 @@ export default function SucursalesPage() {
             <div>
               <h1 className="text-3xl font-bold text-gray-900">Gestión de Sucursales</h1>
               <p className="text-gray-600 mt-2">
-                {filteredSucursales.length} de {sucursales.length} sucursales registradas
+                {filteredSucursales.length > 0 ? (
+                  <>
+                    Mostrando {Math.min(startIndex + 1, filteredSucursales.length)} - {Math.min(endIndex, filteredSucursales.length)} de {filteredSucursales.length} sucursales
+                    {filteredSucursales.length < sucursales.length && (
+                      <span className="text-blue-600"> (filtradas de {sucursales.length} total)</span>
+                    )}
+                  </>
+                ) : (
+                  `${filteredSucursales.length} de ${sucursales.length} sucursales registradas`
+                )}
               </p>
             </div>
             
@@ -239,7 +284,7 @@ export default function SucursalesPage() {
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     placeholder="ID Centro o nombre..."
-                    className="pl-10 w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="pl-10 w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 placeholder-gray-600 text-gray-900"
                   />
                 </div>
               </div>
@@ -251,9 +296,9 @@ export default function SucursalesPage() {
                 <select
                   value={selectedZona}
                   onChange={(e) => setSelectedZona(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900"
                 >
-                  <option value="">Todas las zonas</option>
+                  <option value="" className="text-gray-600">Todas las zonas</option>
                   {[...new Set(sucursales.map(s => s.Zona))].sort().map((zona) => (
                     <option key={zona} value={zona}>
                       Zona {zona}
@@ -269,9 +314,9 @@ export default function SucursalesPage() {
                 <select
                   value={selectedEstado}
                   onChange={(e) => setSelectedEstado(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900"
                 >
-                  <option value="">Todos los estados</option>
+                  <option value="" className="text-gray-600">Todos los estados</option>
                   {[...new Set(sucursales.map(s => s.Estado))].sort().map((estado) => (
                     <option key={estado} value={estado}>
                       {estado}
@@ -290,7 +335,7 @@ export default function SucursalesPage() {
               </h3>
             </div>
             
-            {filteredSucursales.length > 0 ? (
+            {paginatedSucursales.length > 0 ? (
               <div className="overflow-x-auto">
                 <table className="w-full">
                   <thead className="bg-gray-50">
@@ -319,7 +364,7 @@ export default function SucursalesPage() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-200">
-                    {filteredSucursales.map((sucursal) => (
+                    {paginatedSucursales.map((sucursal) => (
                       <tr key={sucursal.IdCentro} className="hover:bg-gray-50">
                         <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                           {sucursal.IdCentro}
@@ -398,6 +443,77 @@ export default function SucursalesPage() {
               </div>
             )}
           </div>
+
+          {/* Controles de paginación */}
+          {filteredSucursales.length > itemsPerPage && (
+            <div className="bg-white rounded-lg shadow p-4">
+              <div className="flex items-center justify-between">
+                <div className="text-sm text-gray-700">
+                  Mostrando {startIndex + 1} a {Math.min(endIndex, filteredSucursales.length)} de {filteredSucursales.length} sucursales
+                </div>
+                
+                <div className="flex items-center space-x-2">
+                  {/* Botón anterior */}
+                  <button
+                    onClick={handlePreviousPage}
+                    disabled={currentPage === 1}
+                    className={`px-3 py-2 rounded-md text-sm font-medium flex items-center space-x-1 ${
+                      currentPage === 1 
+                        ? 'bg-gray-100 text-gray-400 cursor-not-allowed' 
+                        : 'bg-white border text-gray-700 hover:bg-gray-50'
+                    }`}
+                  >
+                    <FiChevronLeft className="w-4 h-4" />
+                    <span>Anterior</span>
+                  </button>
+
+                  {/* Números de página */}
+                  <div className="flex items-center space-x-1">
+                    {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                      let pageNumber;
+                      if (totalPages <= 5) {
+                        pageNumber = i + 1;
+                      } else if (currentPage <= 3) {
+                        pageNumber = i + 1;
+                      } else if (currentPage >= totalPages - 2) {
+                        pageNumber = totalPages - 4 + i;
+                      } else {
+                        pageNumber = currentPage - 2 + i;
+                      }
+
+                      return (
+                        <button
+                          key={pageNumber}
+                          onClick={() => handlePageClick(pageNumber)}
+                          className={`px-3 py-2 rounded-md text-sm font-medium ${
+                            currentPage === pageNumber
+                              ? 'bg-blue-600 text-white'
+                              : 'bg-white border text-gray-700 hover:bg-gray-50'
+                          }`}
+                        >
+                          {pageNumber}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {/* Botón siguiente */}
+                  <button
+                    onClick={handleNextPage}
+                    disabled={currentPage === totalPages}
+                    className={`px-3 py-2 rounded-md text-sm font-medium flex items-center space-x-1 ${
+                      currentPage === totalPages 
+                        ? 'bg-gray-100 text-gray-400 cursor-not-allowed' 
+                        : 'bg-white border text-gray-700 hover:bg-gray-50'
+                    }`}
+                  >
+                    <span>Siguiente</span>
+                    <FiChevronRight className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Estadísticas por zona */}
           {filteredSucursales.length > 0 && (

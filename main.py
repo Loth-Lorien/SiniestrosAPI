@@ -177,6 +177,20 @@ class DetalleImplicado(BaseModel):
     idRangoEdad: int
     detalle: Optional[str] = None
 
+# Modelos para actualización (incluyen IDs para UPDATE)
+class DetallePerdidaUpdate(BaseModel):
+    idDetalle: Optional[int] = None  # Si no se envía, es una nueva pérdida
+    idTipoPerdida: int
+    monto: float = Field(ge=0)
+    recuperado: bool
+    detalle: Optional[str] = None
+
+class DetalleImplicadoUpdate(BaseModel):
+    idImplicado: Optional[int] = None  # Si no se envía, es un nuevo implicado
+    idSexo: str
+    idRangoEdad: int
+    detalle: Optional[str] = None
+
 class CrearSiniestro(BaseModel):
     idCentro: str
     fecha: date
@@ -205,9 +219,9 @@ class ActualizarSiniestro(BaseModel):
     idRealizo: Optional[int] = None
     contemplar: Optional[bool] = None
     
-    # Nuevas estructuras para múltiples pérdidas e implicados
-    perdidas: Optional[List[DetallePerdida]] = None
-    implicados: Optional[List[DetalleImplicado]] = None
+    # Nuevas estructuras para múltiples pérdidas e implicados (con soporte para UPDATE)
+    perdidas: Optional[List[DetallePerdidaUpdate]] = None
+    implicados: Optional[List[DetalleImplicadoUpdate]] = None
     
     # Operaciones de gestión (para añadir/eliminar elementos específicos)
     eliminar_perdidas: Optional[List[int]] = Field(default=None, description="IDs de detalles de pérdida a eliminar")
@@ -224,6 +238,7 @@ class ActualizarSiniestro(BaseModel):
 
 
 class DetallePerdidaRespuesta(BaseModel):
+    idDetalle: int  # ID del detalle de pérdida
     idTipoPerdida: int
     tipoPerdida: str
     monto: float
@@ -232,12 +247,16 @@ class DetallePerdidaRespuesta(BaseModel):
 
 class DetalleImplicadoRespuesta(BaseModel):
     idImplicado: int
+    idSexo: str  # ID del sexo
+    idRangoEdad: int  # ID del rango de edad
     sexo: str
     rangoEdad: str
     detalle: Optional[str] = None
 
 class RespuestaSiniestrosItem(BaseModel):
     idSiniestro: int
+    idCentro: str  # ID de la sucursal
+    idTipoCuenta: int  # ID del tipo de siniestro
     fecha: date
     frustrado: bool
     montoEstimado: float
@@ -293,6 +312,15 @@ class EstadisticasPorSucursal(BaseModel):
     cantidad_siniestros: int
     monto_total: float
     ultimo_siniestro: Optional[date] = None
+
+class EstadisticasPorZona(BaseModel):
+    zona: str
+    cantidad_siniestros: int
+    monto_total_perdidas: float
+    tipo_siniestro_frecuente: str
+    tipo_perdida_frecuente: str
+    sucursales_en_zona: int
+    porcentaje_del_total: float
 
 class EstadisticasPorMes(BaseModel):
     año: int
@@ -585,6 +613,7 @@ def to_out_item(s: Siniestro) -> RespuestaSiniestrosItem:
     if s.detalles:
         for det in s.detalles:
             perdidas.append(DetallePerdidaRespuesta(
+                idDetalle=det.idSiniestrosDetelles,  # Agregamos el ID del detalle
                 idTipoPerdida=det.IdTipoPerdida,
                 tipoPerdida=det.tipo_perdida.TipoPerdida if det.tipo_perdida else f"Tipo {det.IdTipoPerdida}",
                 monto=det.Monto,
@@ -598,6 +627,8 @@ def to_out_item(s: Siniestro) -> RespuestaSiniestrosItem:
         for imp in s.implicados:
             implicados.append(DetalleImplicadoRespuesta(
                 idImplicado=imp.idImplicados,
+                idSexo=imp.IdSexo,  # Agregamos el ID del sexo
+                idRangoEdad=imp.IdRangoEdad,  # Agregamos el ID del rango de edad
                 sexo=imp.sexo.Sexo if imp.sexo else f"Sexo {imp.IdSexo}",
                 rangoEdad=imp.rango.RangoEdad if imp.rango else f"Rango {imp.IdRangoEdad}",
                 detalle=imp.Detalle
@@ -610,6 +641,8 @@ def to_out_item(s: Siniestro) -> RespuestaSiniestrosItem:
     
     return RespuestaSiniestrosItem(
         idSiniestro=s.IdSiniestro,
+        idCentro=s.IdCentro,  # Agregamos el ID de la sucursal
+        idTipoCuenta=s.IdTipoCuenta,  # Agregamos el ID del tipo de siniestro
         fecha=s.Fecha,
         frustrado=bool(s.Frustrado),
         montoEstimado=monto_estimado,
@@ -760,44 +793,54 @@ def editar_siniestro(
             if role == ROLE_ADMIN:
                 s.Contemplar = payload.contemplar
 
-        # 2. Eliminar pérdidas especificadas
-        if payload.eliminar_perdidas:
-            for detalle_id in payload.eliminar_perdidas:
-                detalle = db.execute(select(SiniestroDetalle).where(
-                    and_(SiniestroDetalle.IdSiniestros == s.IdSiniestro, 
-                         SiniestroDetalle.idSiniestrosDetelles == detalle_id)
-                )).scalar_one_or_none()
-                if detalle:
-                    db.delete(detalle)
-
-        # 3. Eliminar implicados especificados
-        if payload.eliminar_implicados:
-            for implicado_id in payload.eliminar_implicados:
-                implicado = db.execute(select(Implicado).where(
-                    and_(Implicado.IdSiniestros == s.IdSiniestro, 
-                         Implicado.idImplicados == implicado_id)
-                )).scalar_one_or_none()
-                if implicado:
-                    db.delete(implicado)
-
-        # 4. Agregar nuevas pérdidas
+        # 2. Gestión inteligente de pérdidas (UPDATE o INSERT según corresponda)
         if payload.perdidas:
-            for perdida in payload.perdidas:
+            print(f"📊 Procesando {len(payload.perdidas)} pérdidas")
+            
+            # Obtener pérdidas existentes del siniestro
+            perdidas_existentes = {p.idSiniestrosDetelles: p for p in s.detalles or []}
+            perdidas_procesadas = set()
+            
+            for perdida_data in payload.perdidas:
                 # Validar que existe el tipo de pérdida
-                if db.execute(select(TipoPerdida).where(TipoPerdida.idTipoPerdida == perdida.idTipoPerdida)).first() is None:
-                    raise HTTPException(400, detail=f"idTipoPerdida {perdida.idTipoPerdida} no existe")
+                if db.execute(select(TipoPerdida).where(TipoPerdida.idTipoPerdida == perdida_data.idTipoPerdida)).first() is None:
+                    raise HTTPException(400, detail=f"idTipoPerdida {perdida_data.idTipoPerdida} no existe")
                 
-                det = SiniestroDetalle(
-                    IdSiniestros=s.IdSiniestro,
-                    IdTipoPerdida=perdida.idTipoPerdida,
-                    Monto=perdida.monto,
-                    Recuperado=int(perdida.recuperado),
-                    Detalles=perdida.detalle,
-                )
-                db.add(det)
+                if perdida_data.idDetalle and perdida_data.idDetalle in perdidas_existentes:
+                    # ACTUALIZAR pérdida existente
+                    detalle_existente = perdidas_existentes[perdida_data.idDetalle]
+                    detalle_existente.IdTipoPerdida = perdida_data.idTipoPerdida
+                    detalle_existente.Monto = perdida_data.monto
+                    detalle_existente.Recuperado = int(perdida_data.recuperado)
+                    detalle_existente.Detalles = perdida_data.detalle
+                    perdidas_procesadas.add(perdida_data.idDetalle)
+                    print(f"🔄 Actualizada pérdida ID: {perdida_data.idDetalle}")
+                else:
+                    # CREAR nueva pérdida
+                    nueva_perdida = SiniestroDetalle(
+                        IdSiniestros=s.IdSiniestro,
+                        IdTipoPerdida=perdida_data.idTipoPerdida,
+                        Monto=perdida_data.monto,
+                        Recuperado=int(perdida_data.recuperado),
+                        Detalles=perdida_data.detalle,
+                    )
+                    db.add(nueva_perdida)
+                    print(f"➕ Creada nueva pérdida")
+            
+            # Eliminar pérdidas que no están en la actualización
+            for id_perdida, perdida_existente in perdidas_existentes.items():
+                if id_perdida not in perdidas_procesadas:
+                    db.delete(perdida_existente)
+                    print(f"🗑️ Eliminada pérdida ID: {id_perdida}")
 
-        # 5. Agregar nuevos implicados
+        # 3. Gestión inteligente de implicados (UPDATE o INSERT según corresponda)  
         if payload.implicados:
+            print(f"👥 Procesando {len(payload.implicados)} implicados")
+            
+            # Obtener implicados existentes del siniestro
+            implicados_existentes = {i.idImplicados: i for i in s.implicados or []}
+            implicados_procesados = set()
+            
             for implicado_data in payload.implicados:
                 # Validar que existe el sexo
                 if db.execute(select(Sexo).where(Sexo.idSexo == implicado_data.idSexo)).first() is None:
@@ -807,15 +850,53 @@ def editar_siniestro(
                 if db.execute(select(RangoEdad).where(RangoEdad.idRangoEdad == implicado_data.idRangoEdad)).first() is None:
                     raise HTTPException(400, detail=f"idRangoEdad {implicado_data.idRangoEdad} no existe")
                 
-                next_id = db.execute(select(func.coalesce(func.max(Implicado.idImplicados), 0) + 1)).scalar_one()
-                imp = Implicado(
-                    idImplicados=next_id,
-                    IdSiniestros=s.IdSiniestro,
-                    IdSexo=implicado_data.idSexo,
-                    IdRangoEdad=implicado_data.idRangoEdad,
-                    Detalle=implicado_data.detalle,
-                )
-                db.add(imp)
+                if implicado_data.idImplicado and implicado_data.idImplicado in implicados_existentes:
+                    # ACTUALIZAR implicado existente
+                    implicado_existente = implicados_existentes[implicado_data.idImplicado]
+                    implicado_existente.IdSexo = implicado_data.idSexo
+                    implicado_existente.IdRangoEdad = implicado_data.idRangoEdad
+                    implicado_existente.Detalle = implicado_data.detalle
+                    implicados_procesados.add(implicado_data.idImplicado)
+                    print(f"� Actualizado implicado ID: {implicado_data.idImplicado}")
+                else:
+                    # CREAR nuevo implicado
+                    next_id = db.execute(select(func.coalesce(func.max(Implicado.idImplicados), 0) + 1)).scalar_one()
+                    nuevo_implicado = Implicado(
+                        idImplicados=next_id,
+                        IdSiniestros=s.IdSiniestro,
+                        IdSexo=implicado_data.idSexo,
+                        IdRangoEdad=implicado_data.idRangoEdad,
+                        Detalle=implicado_data.detalle,
+                    )
+                    db.add(nuevo_implicado)
+                    print(f"➕ Creado nuevo implicado ID: {next_id}")
+            
+            # Eliminar implicados que no están en la actualización
+            for id_implicado, implicado_existente in implicados_existentes.items():
+                if id_implicado not in implicados_procesados:
+                    db.delete(implicado_existente)
+                    print(f"🗑️ Eliminado implicado ID: {id_implicado}")
+
+        # 4. Eliminar elementos especificados explícitamente (compatibilidad con API anterior)
+        if payload.eliminar_perdidas:
+            for detalle_id in payload.eliminar_perdidas:
+                detalle = db.execute(select(SiniestroDetalle).where(
+                    and_(SiniestroDetalle.IdSiniestros == s.IdSiniestro, 
+                         SiniestroDetalle.idSiniestrosDetelles == detalle_id)
+                )).scalar_one_or_none()
+                if detalle:
+                    db.delete(detalle)
+                    print(f"🗑️ Eliminada pérdida específica ID: {detalle_id}")
+
+        if payload.eliminar_implicados:
+            for implicado_id in payload.eliminar_implicados:
+                implicado = db.execute(select(Implicado).where(
+                    and_(Implicado.IdSiniestros == s.IdSiniestro, 
+                         Implicado.idImplicados == implicado_id)
+                )).scalar_one_or_none()
+                if implicado:
+                    db.delete(implicado)
+                    print(f"🗑️ Eliminado implicado específico ID: {implicado_id}")
 
         # 6. Compatibilidad con estructura anterior (actualizar primer detalle/implicado)
         if any(x is not None for x in [payload.idTipoPerdida, payload.monto, payload.recuperado, payload.detalleSiniestro]):
@@ -973,12 +1054,20 @@ def eliminar_siniestro(
     db: Session = Depends(get_db),
     user: Usuario = Depends(get_current_user),
 ):
-    # Permisos: Admin y Coordinador
+    # Permisos: Administradores y Coordinadores
     require_role(user, [ROLE_ADMIN, ROLE_COORD])
+    
+    print(f"🗑️ Admin {user.NombreUsuario} eliminando siniestro {idSiniestro}")
 
     s = db.get(Siniestro, idSiniestro)
     if not s:
         raise HTTPException(404, detail="Siniestro no encontrado")
+
+    # Contar elementos a eliminar
+    num_perdidas = len(s.detalles or [])
+    num_implicados = len(s.implicados or [])
+    
+    print(f"📊 Eliminando {num_perdidas} pérdidas y {num_implicados} implicados")
 
     # Borrar hijos manualmente por restricciones NO ACTION
     for det in list(s.detalles or []):
@@ -989,7 +1078,9 @@ def eliminar_siniestro(
 
     db.delete(s)
     db.commit()
-    return {"estatus": True, "mensaje": f"Siniestro {idSiniestro} eliminado"}
+    
+    print(f"✅ Siniestro {idSiniestro} eliminado completamente")
+    return {"estatus": True, "mensaje": f"Siniestro {idSiniestro} eliminado exitosamente junto con {num_perdidas} pérdidas y {num_implicados} implicados"}
 
 
 # ========================
@@ -1251,6 +1342,105 @@ def estadisticas_por_sucursal(
         ))
     
     return estadisticas
+
+
+@app.get("/estadisticas/por-zona", response_model=List[EstadisticasPorZona])
+def estadisticas_por_zona(
+    fecha_inicio: Optional[date] = None,
+    fecha_fin: Optional[date] = None,
+    db: Session = Depends(get_db),
+    user: Usuario = Depends(get_current_user)
+):
+    """Estadísticas completas agrupadas por zona geográfica"""
+    
+    # Query principal para obtener estadísticas básicas por zona
+    query_base = select(
+        Zona.zona,
+        func.count(func.distinct(Siniestro.IdSiniestro)).label('cantidad_siniestros'),
+        func.coalesce(func.sum(SiniestroDetalle.Monto), 0).label('monto_total_perdidas'),
+        func.count(func.distinct(Sucursal.IdCentro)).label('sucursales_en_zona')
+    ).select_from(
+        Zona.__table__
+        .join(Sucursal.__table__, Zona.idZona == Sucursal.idZona)
+        .outerjoin(Siniestro.__table__, Sucursal.IdCentro == Siniestro.IdCentro)
+        .outerjoin(SiniestroDetalle.__table__, Siniestro.IdSiniestro == SiniestroDetalle.IdSiniestros)
+    ).group_by(Zona.idZona, Zona.zona)
+    
+    # Aplicar filtros de fecha
+    if fecha_inicio and fecha_fin:
+        query_base = query_base.where(and_(Siniestro.Fecha >= fecha_inicio, Siniestro.Fecha <= fecha_fin))
+    elif fecha_inicio:
+        query_base = query_base.where(Siniestro.Fecha >= fecha_inicio)
+    elif fecha_fin:
+        query_base = query_base.where(Siniestro.Fecha <= fecha_fin)
+    
+    resultados_base = db.execute(query_base).all()
+    
+    # Calcular total de siniestros para porcentajes
+    total_siniestros = sum(r.cantidad_siniestros for r in resultados_base)
+    
+    estadisticas = []
+    
+    for r in resultados_base:
+        # Obtener tipo de siniestro más frecuente en la zona
+        query_tipo_siniestro = select(
+            TipoSiniestro.Cuenta,
+            func.count(func.distinct(Siniestro.IdSiniestro)).label('cantidad')
+        ).select_from(
+            Siniestro.__table__
+            .join(Sucursal.__table__, Siniestro.IdCentro == Sucursal.IdCentro)
+            .join(Zona.__table__, Sucursal.idZona == Zona.idZona)
+            .join(TipoSiniestro.__table__, Siniestro.IdTipoCuenta == TipoSiniestro.idTipoSiniestro)
+        ).where(Zona.zona == r.zona).group_by(TipoSiniestro.idTipoSiniestro, TipoSiniestro.Cuenta).order_by(func.count(func.distinct(Siniestro.IdSiniestro)).desc()).limit(1)
+        
+        # Aplicar mismos filtros de fecha
+        if fecha_inicio and fecha_fin:
+            query_tipo_siniestro = query_tipo_siniestro.where(and_(Siniestro.Fecha >= fecha_inicio, Siniestro.Fecha <= fecha_fin))
+        elif fecha_inicio:
+            query_tipo_siniestro = query_tipo_siniestro.where(Siniestro.Fecha >= fecha_inicio)
+        elif fecha_fin:
+            query_tipo_siniestro = query_tipo_siniestro.where(Siniestro.Fecha <= fecha_fin)
+            
+        tipo_siniestro_resultado = db.execute(query_tipo_siniestro).first()
+        tipo_siniestro_frecuente = tipo_siniestro_resultado.Cuenta if tipo_siniestro_resultado else "N/A"
+        
+        # Obtener tipo de pérdida más frecuente en la zona
+        query_tipo_perdida = select(
+            TipoPerdida.TipoPerdida,
+            func.count(SiniestroDetalle.idSiniestrosDetelles).label('cantidad')
+        ).select_from(
+            SiniestroDetalle.__table__
+            .join(Siniestro.__table__, SiniestroDetalle.IdSiniestros == Siniestro.IdSiniestro)
+            .join(Sucursal.__table__, Siniestro.IdCentro == Sucursal.IdCentro)
+            .join(Zona.__table__, Sucursal.idZona == Zona.idZona)
+            .join(TipoPerdida.__table__, SiniestroDetalle.IdTipoPerdida == TipoPerdida.idTipoPerdida)
+        ).where(Zona.zona == r.zona).group_by(TipoPerdida.idTipoPerdida, TipoPerdida.TipoPerdida).order_by(func.count(SiniestroDetalle.idSiniestrosDetelles).desc()).limit(1)
+        
+        # Aplicar mismos filtros de fecha
+        if fecha_inicio and fecha_fin:
+            query_tipo_perdida = query_tipo_perdida.where(and_(Siniestro.Fecha >= fecha_inicio, Siniestro.Fecha <= fecha_fin))
+        elif fecha_inicio:
+            query_tipo_perdida = query_tipo_perdida.where(Siniestro.Fecha >= fecha_inicio)
+        elif fecha_fin:
+            query_tipo_perdida = query_tipo_perdida.where(Siniestro.Fecha <= fecha_fin)
+            
+        tipo_perdida_resultado = db.execute(query_tipo_perdida).first()
+        tipo_perdida_frecuente = tipo_perdida_resultado.TipoPerdida if tipo_perdida_resultado else "N/A"
+        
+        # Calcular porcentaje del total
+        porcentaje = (r.cantidad_siniestros / total_siniestros * 100) if total_siniestros > 0 else 0
+        
+        estadisticas.append(EstadisticasPorZona(
+            zona=r.zona,
+            cantidad_siniestros=r.cantidad_siniestros,
+            monto_total_perdidas=float(r.monto_total_perdidas),
+            tipo_siniestro_frecuente=tipo_siniestro_frecuente,
+            tipo_perdida_frecuente=tipo_perdida_frecuente,
+            sucursales_en_zona=r.sucursales_en_zona,
+            porcentaje_del_total=round(porcentaje, 2)
+        ))
+    
+    return sorted(estadisticas, key=lambda x: x.cantidad_siniestros, reverse=True)
 
 
 @app.get("/estadisticas/por-mes", response_model=List[EstadisticasPorMes])

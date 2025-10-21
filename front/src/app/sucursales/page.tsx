@@ -42,10 +42,11 @@ export default function SucursalesPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedZona, setSelectedZona] = useState('');
   const [selectedEstado, setSelectedEstado] = useState('');
+  const [showOnlyActives, setShowOnlyActives] = useState(false);
   
   // Paginación
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage] = useState(50);
+  const [itemsPerPage] = useState(25);
 
   // Verificar autenticación al cargar
   useEffect(() => {
@@ -151,13 +152,77 @@ export default function SucursalesPage() {
     setRefreshing(false);
   };
 
+  const handleVerUbicacion = async (idCentro: string) => {
+    try {
+      const authData = localStorage.getItem('auth_credentials');
+      if (!authData) {
+        router.push('/login');
+        return;
+      }
+
+      const { username, password } = JSON.parse(authData);
+      const basicAuth = btoa(`${username}:${password}`);
+
+      const response = await fetch(`http://localhost:8000/sucursal_ubicacion/${idCentro}`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Basic ${basicAuth}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        if (response.status === 404) {
+          alert('No se encontró información de ubicación para esta sucursal');
+          return;
+        }
+        throw new Error('Error al obtener información de ubicación');
+      }
+
+      const data = await response.json();
+      
+      if (data.success && data.data.link_mymaps) {
+        // Abrir el link en una nueva pestaña
+        window.open(data.data.link_mymaps, '_blank');
+      } else {
+        alert('No hay información de ubicación disponible para esta sucursal');
+      }
+
+    } catch (error) {
+      console.error('Error al obtener ubicación:', error);
+      alert('Error al obtener información de ubicación');
+    }
+  };
+
   // Filtrar sucursales
+  const isSucursalActiva = (s: any) => {
+    // Buscar en EstadoActivo (tinyint: 1=activo, 0=inactivo) o fallback a Estado
+    const raw = s?.EstadoActivo ?? s?.estado ?? s?.Estado ?? s?.Activo ?? null;
+    if (raw === null || raw === undefined) return undefined;
+    if (typeof raw === 'boolean') return raw;
+    if (typeof raw === 'number') return raw === 1;
+    if (typeof raw === 'string') {
+      const trimmed = raw.trim();
+      if (trimmed === '1') return true;
+      if (trimmed === '0') return false;
+    }
+    return undefined;
+  };
+
   const filteredSucursales = sucursales.filter(sucursal => {
     const matchesSearch = sucursal.Sucursales.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          sucursal.IdCentro.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          sucursal.Municipio.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesZona = !selectedZona || sucursal.Zona === selectedZona;
     const matchesEstado = !selectedEstado || sucursal.Estado === selectedEstado;
+
+    // Filtrado por estado activo/inactivo si se activó el checkbox
+    if (showOnlyActives) {
+      const activo = isSucursalActiva(sucursal);
+      // Si no se puede determinar el estado desde la API asumimos que está activa (no filtrar accidentalmente)
+      const esActivo = activo === undefined ? true : activo;
+      return matchesSearch && matchesZona && matchesEstado && esActivo;
+    }
 
     return matchesSearch && matchesZona && matchesEstado;
   });
@@ -324,6 +389,18 @@ export default function SucursalesPage() {
                   ))}
                 </select>
               </div>
+
+              <div className="flex items-center">
+                <label className="inline-flex items-center">
+                  <input
+                    type="checkbox"
+                    checked={showOnlyActives}
+                    onChange={(e) => setShowOnlyActives(e.target.checked)}
+                    className="form-checkbox h-4 w-4 text-blue-600"
+                  />
+                  <span className="ml-2 text-sm text-gray-700">Mostrar solo activas</span>
+                </label>
+              </div>
             </div>
           </div>
 
@@ -386,8 +463,31 @@ export default function SucursalesPage() {
                               <FiMapPin className="w-3 h-3 text-gray-400 mr-1" />
                               {sucursal.Municipio}
                             </div>
-                            <div className="text-xs text-gray-400 mt-1">
-                              {sucursal.Estado} - Zona {sucursal.Zona}
+                            <div className="text-xs text-gray-400 mt-1 flex items-center space-x-2">
+                              <div>{sucursal.Estado} - Zona {sucursal.Zona}</div>
+                              {/* Badge de estado */}
+                              {(() => {
+                                const activo = isSucursalActiva(sucursal);
+                                if (activo === true) {
+                                  return (
+                                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                      Activa
+                                    </span>
+                                  );
+                                } else if (activo === false) {
+                                  return (
+                                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                                      Inactiva
+                                    </span>
+                                  );
+                                } else {
+                                  return (
+                                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                                      ND
+                                    </span>
+                                  );
+                                }
+                              })()}
                             </div>
                           </div>
                         </td>
@@ -418,7 +518,11 @@ export default function SucursalesPage() {
                             <button className="text-green-600 hover:text-green-900" title="Editar">
                               <FiEdit3 className="w-4 h-4" />
                             </button>
-                            <button className="text-purple-600 hover:text-purple-900" title="Ver ubicación">
+                            <button 
+                              className="text-purple-600 hover:text-purple-900" 
+                              title="Ver ubicación"
+                              onClick={() => handleVerUbicacion(sucursal.IdCentro)}
+                            >
                               <FiMapPin className="w-4 h-4" />
                             </button>
                           </div>

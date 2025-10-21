@@ -57,6 +57,7 @@ export default function DashboardRealPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [showUserMenu, setShowUserMenu] = useState(false);
 
   // Verificar autenticación al cargar
   useEffect(() => {
@@ -243,6 +244,35 @@ export default function DashboardRealPage() {
               <FiRefreshCw className={`w-4 h-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
               {refreshing ? 'Actualizando...' : 'Actualizar'}
             </button>
+            {/* Menú de usuario */}
+            <div className="relative">
+              <button
+                className="flex items-center px-3 py-2 bg-gray-100 rounded-lg hover:bg-gray-200 text-gray-800 focus:outline-none"
+                onClick={() => setShowUserMenu((prev) => !prev)}
+              >
+                <FiUsers className="mr-2" />
+                {user?.nombre || user?.usuario || 'Usuario'}
+                <svg className="ml-2 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+              </button>
+              {showUserMenu && (
+                <div className="absolute right-0 mt-2 w-56 bg-white border border-gray-200 rounded-lg shadow-lg z-50">
+                  <div className="px-4 py-3 border-b border-gray-100">
+                    <div className="font-semibold text-gray-900">{user?.nombre || user?.usuario}</div>
+                    <div className="text-xs text-gray-500">Rol: {user?.rol}</div>
+                  </div>
+                  <button
+                    className="w-full px-4 py-2 text-left text-red-600 hover:bg-red-50 border-t border-gray-100"
+                    onClick={() => {
+                      localStorage.removeItem('auth_credentials');
+                      localStorage.removeItem('user_data');
+                      router.push('/login');
+                    }}
+                  >
+                    Cerrar sesión
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         </div>
         {/* Error Message */}

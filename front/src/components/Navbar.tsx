@@ -22,6 +22,7 @@ export default function Navbar({ currentPage = 'dashboard' }: NavbarProps) {
   const router = useRouter();
   const { user, logout } = useAuth();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [showUserMenu, setShowUserMenu] = useState(false);
 
   const handleLogout = () => {
     logout();
@@ -69,8 +70,11 @@ export default function Navbar({ currentPage = 'dashboard' }: NavbarProps) {
 
           {/* Desktop user menu */}
           <div className="hidden sm:ml-6 sm:flex sm:items-center">
-            <div className="flex items-center space-x-4">
-              <div className="flex items-center">
+            <div className="relative flex items-center">
+              <button
+                className="flex items-center focus:outline-none"
+                onClick={() => setShowUserMenu((prev) => !prev)}
+              >
                 <div className="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center">
                   <span className="text-sm font-medium text-blue-600">
                     {user?.usuario?.[0]?.toUpperCase() || 'U'}
@@ -79,15 +83,23 @@ export default function Navbar({ currentPage = 'dashboard' }: NavbarProps) {
                 <span className="ml-2 text-sm font-medium text-gray-700">
                   {user?.usuario || 'Usuario'}
                 </span>
-              </div>
-              
-              <button
-                onClick={handleLogout}
-                className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
-              >
-                <FiLogOut className="w-4 h-4 mr-2" />
-                Salir
+                <svg className="ml-2 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
               </button>
+              {showUserMenu && (
+                <div className="absolute right-0 mt-2 w-56 bg-white border border-gray-200 rounded-lg shadow-lg z-50">
+                  <div className="px-4 py-3 border-b border-gray-100">
+                    <div className="font-semibold text-gray-900">{user?.nombre || user?.usuario}</div>
+                    <div className="text-xs text-gray-500">Rol: {user?.rol}</div>
+                  </div>
+                  <button
+                    className="w-full px-4 py-2 text-left text-red-600 hover:bg-red-50 border-t border-gray-100"
+                    onClick={handleLogout}
+                  >
+                    <FiLogOut className="w-4 h-4 mr-2" />
+                    Cerrar sesión
+                  </button>
+                </div>
+              )}
             </div>
           </div>
 
@@ -117,7 +129,7 @@ export default function Navbar({ currentPage = 'dashboard' }: NavbarProps) {
                     router.push(item.href);
                     setIsMobileMenuOpen(false);
                   }}
-                  className={`${
+                  className={`$${
                     item.current
                       ? 'bg-blue-50 border-blue-500 text-blue-700'
                       : 'border-transparent text-gray-500 hover:bg-gray-50 hover:border-gray-300 hover:text-gray-700'
@@ -131,7 +143,7 @@ export default function Navbar({ currentPage = 'dashboard' }: NavbarProps) {
               ))}
             </div>
             <div className="pt-4 pb-3 border-t border-gray-200">
-              <div className="flex items-center px-4">
+              <div className="flex items-center">
                 <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center">
                   <span className="text-sm font-medium text-blue-600">
                     {user?.usuario?.[0]?.toUpperCase() || 'U'}
@@ -141,6 +153,7 @@ export default function Navbar({ currentPage = 'dashboard' }: NavbarProps) {
                   <div className="text-base font-medium text-gray-800">
                     {user?.usuario || 'Usuario'}
                   </div>
+                  <div className="text-xs text-gray-500">Rol: {user?.rol}</div>
                 </div>
               </div>
               <div className="mt-3 space-y-1">

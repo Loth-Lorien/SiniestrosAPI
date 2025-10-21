@@ -1,0 +1,39 @@
+bach:
+
+Invoke-Expression 'cd "C:\Users\MERZA\Desktop\clase\SiniestrosApi"; python -m uvicorn main:app --reload --host 0.0.0.0 --port 8000'
+
+front:
+Set-Location "C:\Users\MERZA\Desktop\siniestros\front"; npm run dev
+
+cd "C:\Users\MERZA\Desktop\siniestros\front"; npm run dev
+
+Push-Location "C:\Users\MERZA\Desktop\clase\SiniestrosApi\front"; npm run dev
+
+Invoke-Expression 'cd "C:\Users\MERZA\Desktop\clase\SiniestrosApi"; python -m uvicorn main:app --reload --port 8000'
+
+
+apagar taskkill /F /PID 17248
+taskkill /F /IM node.exe
+
+📋 RESUMEN FINAL PARA EL PRÓXIMO CHAT:
+✅ LO QUE ESTÁ FUNCIONANDO:
+Backend FastAPI: Corriendo correctamente en puerto 8000
+Frontend Next.js: Corriendo en puerto 3000
+API Endpoints: Todos implementados y respondiendo
+Tipos TypeScript: Completamente alineados con el backend
+Servicios HTTP: Configurados para la API real
+🎯 COMANDOS PARA INICIAR:
+🚀 ESTRATEGIA PARA EL PRÓXIMO CHAT:
+Página de prueba simple sin autenticación compleja
+Conexión directa a endpoints públicos primero
+Verificar integración básica
+Implementar auth después una vez que funcione lo básico
+📁 ARCHIVOS CLAVE LISTOS:
+api.ts - Tipos alineados con backend
+services.ts - Servicios HTTP configurados
+axios.ts - Cliente HTTP con auth
+main.py - Backend completo disponible
+✨ OBJETIVO DEL PRÓXIMO CHAT:
+"Tengo un frontend Next.js y backend FastAPI. Ambos están corriendo. Necesito crear una página simple que muestre datos reales de la API sin complicaciones de autenticación."
+
+¡Perfecto para empezar fresco! 🎯

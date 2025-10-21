@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Plantilla Boletín con Poppins</title>
+
+  <!-- Importa la fuente Poppins desde Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;700&display=swap" rel="stylesheet">
+
+  <style>
+    /* === Contenedor general === */
+    .container {
+      position: relative;
+      width: 612px;
+      height: 792px;
+      border: 1px solid #ccc;
+      margin: 0 auto;
+      overflow: hidden;
+    }
+
+    /* Solo la imagen de fondo ocupa toda el área */
+    .container > img.fondo {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    /* === Texto superpuesto (ajusta coordenadas) === */
+    .zona {
+      position: absolute;
+      left: 127px;
+      top: 130px;
+      color: #ffffff;
+      font-size: 14px;
+    }
+    .uden {
+      position: absolute;
+      left: 265px;
+      top: 130px;
+      color: #ffffff;
+      font-size: 14px;
+    }
+    .fecha {
+      position: absolute;
+      left: 423px;
+      top: 132px;
+      color: #ffffff;
+      font-size: 13px;
+    }
+    .sucursal {
+      position: absolute;
+      left: 166px;
+      top: 162px;
+      color: #ffffff;
+      font-size: 14px;
+    }
+    .descripcion {
+      position: absolute;
+      left: 315px;
+      top: 240px;
+      width: 220px;
+      color: #003188;
+      font-size: 12px;
+      line-height: 15px;
+      overflow-wrap: break-word;
+    }
+
+    /* === Marco fijo para la imagen del recuadro naranja === */
+    .imagen-box {
+      position: absolute;
+      left: 70px;   /* AJUSTA: posición horizontal */
+      top: 212px;   /* AJUSTA: posición vertical */
+      width: 221px; /* AJUSTA: alto del recuadro */
+      overflow: hidden;
+      border-radius: 4px; /* opcional: bordes redondeados */
+      background: transparent;
+    }
+
+    /* Imagen dentro del marco fijo */
+    .imagen-box img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain; /* usa 'cover' si prefieres que llene el recuadro recortando */
+      display: block;
+    }
+
+    /* === Fuente Poppins para todo el texto === */
+    .zona, .uden, .fecha, .sucursal, .descripcion {
+      font-family: 'Poppins', sans-serif;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <!-- Imagen de fondo (plantilla) -->
+    <img class="fondo" src="Asalto.svg" alt="Plantilla Asalto">
+
+    <!-- Textos superpuestos -->
+    <div class="zona">Pacífico Sur</div>
+    <div class="uden">T001</div>
+    <div class="sucursal">Sucursal A</div>
+    <div class="fecha">2025-10-20 14:30</div>
+
+    <div class="descripcion">
+      Aquí puedes escribir una descripción larga.<br>
+      Se irá acomodando en varias líneas.<br>
+      Ajusta el tamaño y las posiciones según tus necesidades.
+    </div>
+
+    <!-- Marco fijo para la imagen del recuadro naranja -->
+    <div class="imagen-box">
+      <img src="./imagenesSiniestros/15/15.jpg" alt="Imagen en recuadro naranja" loading="lazy">
+    </div>
+  </div>
+</body>
+</html>

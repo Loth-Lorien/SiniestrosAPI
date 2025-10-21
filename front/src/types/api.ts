@@ -42,11 +42,19 @@ export interface DetalleImplicado {
   detalle?: string;
 }
 
+export interface DetalleBoletin {
+  boletin?: string;
+  rutaFoto?: string;
+}
+
 export interface CrearSiniestro {
   idCentro: string; // Cambiado a string para coincidir con backend
   fecha: string; // YYYY-MM-DD
+  hora?: string; // HH:mm:ss
   idTipoCuenta: number;
   frustrado: boolean;
+  finalizado: boolean;
+  detalle?: string;
   idRealizo: number;
   
   // Múltiples pérdidas (nueva estructura)
@@ -54,6 +62,9 @@ export interface CrearSiniestro {
   
   // Múltiples implicados (nueva estructura)
   implicados?: DetalleImplicado[];
+  
+  // Información del boletín (opcional)
+  boletin?: DetalleBoletin;
   
   // Campos de compatibilidad (estructura anterior)
   idTipoPerdida?: number;
@@ -67,9 +78,12 @@ export interface CrearSiniestro {
 
 export interface ActualizarSiniestro {
   idCentro?: string; // Cambiado a string para coincidir con backend
-  fecha?: string;
+  fecha?: string; // YYYY-MM-DD
+  hora?: string; // HH:mm:ss
   idTipoCuenta?: number;
   frustrado?: boolean;
+  finalizado?: boolean;
+  detalle?: string;
   idRealizo?: number;
   contemplar?: boolean;
   
@@ -108,8 +122,11 @@ export interface DetalleImplicadoRespuesta {
 
 export interface Siniestro {
   idSiniestro: number;
-  fecha: string;
+  fecha: string; // YYYY-MM-DD
+  hora?: string; // HH:mm:ss
   frustrado: boolean;
+  finalizado: boolean;
+  detalle?: string;
   montoEstimado: number;
   realizo: string;
   centro: string;
@@ -124,7 +141,6 @@ export interface Siniestro {
   tipoPerdida?: string;
   monto?: number;
   recuperado?: boolean;
-  detalle?: string;
 }
 
 // ====================================

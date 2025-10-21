@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import DashboardLayout from '../../components/DashboardLayout';
+import BoletinGenerator from '../../components/BoletinGenerator';
 import { 
   FiPlus,
   FiEdit3,
@@ -17,13 +18,16 @@ import {
   FiAlertCircle,
   FiCheckCircle,
   FiClock,
-  FiX
+  FiX,
+  FiFileText,
+  FiUpload
 } from 'react-icons/fi';
 
 interface Siniestro {
   IdSiniestro: number;
   IdCentro: string;
   Fecha: string;
+  Hora?: string;
   TipoSiniestro: string;
   IdTipoCuenta: number;
   Frustrado: boolean;
@@ -80,18 +84,28 @@ interface Implicado {
 interface NuevoSiniestro {
   idCentro: string;
   fecha: string;
+  hora?: string;
   idTipoCuenta: number;
   frustrado: boolean;
+  finalizado?: boolean;
+  detalle?: string;
   idRealizo: number;
   perdidas: Perdida[];
   implicados: Implicado[];
+  boletin?: {
+    boletin?: string;
+    rutaFoto?: string;
+  };
 }
 
 interface EditarSiniestro {
   idCentro?: string;
   fecha?: string;
+  hora?: string;
   idTipoCuenta?: number;
   frustrado?: boolean;
+  finalizado?: boolean;
+  detalle?: string;
   idRealizo?: number;
   perdidas?: Perdida[];
   implicados?: Implicado[];
@@ -124,6 +138,10 @@ export default function SiniestrosPage() {
   const [loadingDetail, setLoadingDetail] = useState(false);
   const [siniestroDetalle, setSiniestroDetalle] = useState<any>(null);
   
+  // Modal de generación de boletín
+  const [showBoletinModal, setShowBoletinModal] = useState(false);
+  const [boletinSiniestroId, setBoletinSiniestroId] = useState<number | null>(null);
+  
   // Modal de confirmación de eliminación
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deletingSiniestroId, setDeletingSiniestroId] = useState<number | null>(null);
@@ -136,12 +154,19 @@ export default function SiniestrosPage() {
   const [sexos, setSexos] = useState<Sexo[]>([]);
   const [sucursales, setSucursales] = useState<Sucursal[]>([]);
 
+  // Estados para manejo de archivos de boletín
+  const [selectedFoto, setSelectedFoto] = useState<File | null>(null);
+  const fotoInputRef = useRef<HTMLInputElement>(null);
+
   // Formulario de nuevo siniestro
   const [nuevoSiniestro, setNuevoSiniestro] = useState<NuevoSiniestro>({
     idCentro: '',
     fecha: new Date().toISOString().split('T')[0],
+    hora: new Date().toTimeString().slice(0, 5),
     idTipoCuenta: 0,
     frustrado: false,
+    finalizado: false,
+    detalle: '',
     idRealizo: 1,
     perdidas: [{
       idTipoPerdida: 0,
@@ -153,7 +178,11 @@ export default function SiniestrosPage() {
       idSexo: '',
       idRangoEdad: 0,
       detalle: ''
-    }]
+    }],
+    boletin: {
+      boletin: '',
+      rutaFoto: ''
+    }
   });
 
   // Formulario de editar siniestro
@@ -227,6 +256,7 @@ export default function SiniestrosPage() {
       }
 
       const siniestrosData = await siniestrosResponse.json();
+      // Ahora el backend ya envía fecha y hora por separado
       setSiniestros(siniestrosData.data || []);
 
       // Cargar tipos de siniestro
@@ -369,12 +399,59 @@ export default function SiniestrosPage() {
       const result = await response.json();
       console.log('✅ Siniestro creado exitosamente:', result);
 
+      // Crear boletín si se proporcionó información
+      if (nuevoSiniestro.boletin?.boletin && nuevoSiniestro.boletin.boletin.trim() !== '') {
+        try {
+          console.log('📄 Creando boletín para el siniestro...');
+          
+          // Crear boletín
+          const boletinResponse = await fetch('http://localhost:8000/boletines', {
+            method: 'POST',
+            headers,
+            body: JSON.stringify({
+              idSiniestro: result.idSiniestro,
+              boletin: nuevoSiniestro.boletin.boletin
+            }),
+          });
+
+          if (boletinResponse.ok) {
+            console.log('✅ Boletín creado exitosamente');
+            
+            // Subir foto si se seleccionó una
+            if (selectedFoto) {
+              const formData = new FormData();
+              formData.append('foto', selectedFoto);
+
+              const authHeaders = getAuthHeaders();
+              const fotoResponse = await fetch(`http://localhost:8000/boletines/${result.idSiniestro}/foto`, {
+                method: 'POST',
+                headers: authHeaders || undefined,
+                body: formData,
+              });
+
+              if (fotoResponse.ok) {
+                console.log('✅ Foto del boletín subida exitosamente');
+              } else {
+                console.warn('⚠️ Error subiendo foto del boletín');
+              }
+            }
+          } else {
+            console.warn('⚠️ Error creando boletín');
+          }
+        } catch (boletinError) {
+          console.warn('⚠️ Error en proceso de boletín:', boletinError);
+        }
+      }
+
       // Resetear formulario
       setNuevoSiniestro({
         idCentro: '',
         fecha: new Date().toISOString().split('T')[0],
+        hora: new Date().toTimeString().slice(0, 5),
         idTipoCuenta: 0,
         frustrado: false,
+        finalizado: false,
+        detalle: '',
         idRealizo: 1,
         perdidas: [{
           idTipoPerdida: 0,
@@ -386,8 +463,18 @@ export default function SiniestrosPage() {
           idSexo: '',
           idRangoEdad: 0,
           detalle: ''
-        }]
+        }],
+        boletin: {
+          boletin: '',
+          rutaFoto: ''
+        }
       });
+
+      // Resetear foto seleccionada
+      setSelectedFoto(null);
+      if (fotoInputRef.current) {
+        fotoInputRef.current.value = '';
+      }
 
       setShowCreateModal(false);
       await loadData(); // Recargar la lista
@@ -679,6 +766,41 @@ export default function SiniestrosPage() {
     }
   };
 
+  // Funciones para manejo de boletín
+  const handleFotoChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      setSelectedFoto(file);
+    }
+  };
+
+  const handleGenerarBoletin = async (siniestroId: number) => {
+    try {
+      const authHeaders = getAuthHeaders();
+      const response = await fetch(`http://localhost:8000/boletines/${siniestroId}/pdf`, {
+        method: 'GET',
+        headers: authHeaders || undefined,
+      });
+
+      if (!response.ok) {
+        throw new Error('Error generando boletín PDF');
+      }
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `boletin-siniestro-${siniestroId}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Error generando boletín:', error);
+      alert('Error al generar el boletín PDF');
+    }
+  };
+
   // Funciones para manejar implicados en edición
   const addImplicadoEdit = () => {
     setEditarSiniestro(prev => ({
@@ -714,12 +836,10 @@ export default function SiniestrosPage() {
 
   const formatDate = (dateStr: string) => {
     try {
-      return new Date(dateStr).toLocaleString('es-ES', {
+      return new Date(dateStr).toLocaleDateString('es-ES', {
         year: 'numeric',
         month: 'short',
-        day: '2-digit',
-        hour: '2-digit',
-        minute: '2-digit'
+        day: '2-digit'
       });
     } catch {
       return dateStr;
@@ -927,7 +1047,10 @@ export default function SiniestrosPage() {
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {formatDate(siniestro.Fecha)}
+                          <div>{formatDate(siniestro.Fecha)}</div>
+                          {siniestro.Hora && (
+                            <div className="text-xs text-gray-400 mt-1">{siniestro.Hora}</div>
+                          )}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${
@@ -959,6 +1082,13 @@ export default function SiniestrosPage() {
                             disabled={loadingDetail}
                           >
                             <FiEye className="w-4 h-4" />
+                          </button>
+                          <button 
+                            onClick={() => handleGenerarBoletin(siniestro.IdSiniestro)}
+                            className="text-purple-600 hover:text-purple-900"
+                            title="Generar boletín PDF"
+                          >
+                            <FiFileText className="w-4 h-4" />
                           </button>
                           <button 
                             onClick={() => handleEditClick(siniestro.IdSiniestro)}
@@ -1083,6 +1213,18 @@ export default function SiniestrosPage() {
 
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Hora
+                      </label>
+                      <input
+                        type="time"
+                        value={nuevoSiniestro.hora || ''}
+                        onChange={(e) => setNuevoSiniestro(prev => ({ ...prev, hora: e.target.value }))}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
                         Tipo de Siniestro *
                       </label>
                       <select
@@ -1101,7 +1243,7 @@ export default function SiniestrosPage() {
                     </div>
                   </div>
 
-                  <div className="mt-4">
+                  <div className="mt-4 space-y-4">
                     <label className="flex items-center">
                       <input
                         type="checkbox"
@@ -1111,8 +1253,82 @@ export default function SiniestrosPage() {
                       />
                       <span className="ml-2 text-sm text-gray-700">Siniestro frustrado</span>
                     </label>
+                    
+                    <label className="flex items-center">
+                      <input
+                        type="checkbox"
+                        checked={nuevoSiniestro.finalizado || false}
+                        onChange={(e) => setNuevoSiniestro(prev => ({ ...prev, finalizado: e.target.checked }))}
+                        className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                      />
+                      <span className="ml-2 text-sm text-gray-700">Siniestro finalizado</span>
+                    </label>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Detalle adicional
+                      </label>
+                      <textarea
+                        value={nuevoSiniestro.detalle || ''}
+                        onChange={(e) => setNuevoSiniestro(prev => ({ ...prev, detalle: e.target.value }))}
+                        rows={3}
+                        placeholder="Ingrese detalles adicionales del siniestro..."
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900"
+                      />
+                    </div>
                   </div>
 
+                  {/* Información del Boletín */}
+                  <div className="mt-6 border-t pt-6">
+                    <h4 className="text-md font-semibold text-gray-800 mb-4">Información del Boletín (Opcional)</h4>
+                    
+                    <div className="grid grid-cols-1 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Descripción del Boletín
+                        </label>
+                        <textarea
+                          value={nuevoSiniestro.boletin?.boletin || ''}
+                          onChange={(e) => setNuevoSiniestro(prev => ({ 
+                            ...prev, 
+                            boletin: { 
+                              ...prev.boletin, 
+                              boletin: e.target.value 
+                            } 
+                          }))}
+                          rows={4}
+                          placeholder="Descripción detallada del siniestro para el boletín..."
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Foto del Siniestro
+                        </label>
+                        <div className="flex items-center space-x-2">
+                          <input
+                            type="file"
+                            accept="image/*"
+                            onChange={handleFotoChange}
+                            className="hidden"
+                            ref={fotoInputRef}
+                          />
+                          <button
+                            type="button"
+                            onClick={() => fotoInputRef.current?.click()}
+                            className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 flex items-center text-gray-700"
+                          >
+                            <FiUpload className="w-4 h-4 mr-2" />
+                            {selectedFoto ? 'Cambiar foto' : 'Seleccionar foto'}
+                          </button>
+                          {selectedFoto && (
+                            <span className="text-sm text-gray-600">{selectedFoto.name}</span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
 
                 </div>
 
@@ -1406,6 +1622,18 @@ export default function SiniestrosPage() {
 
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Hora
+                      </label>
+                      <input
+                        type="time"
+                        value={editarSiniestro.hora || ''}
+                        onChange={(e) => setEditarSiniestro(prev => ({ ...prev, hora: e.target.value }))}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
                         Tipo de Siniestro
                       </label>
                       <select
@@ -1423,7 +1651,7 @@ export default function SiniestrosPage() {
                     </div>
                   </div>
 
-                  <div className="mt-4">
+                  <div className="mt-4 space-y-4">
                     <label className="flex items-center">
                       <input
                         type="checkbox"
@@ -1433,6 +1661,29 @@ export default function SiniestrosPage() {
                       />
                       <span className="ml-2 text-sm text-gray-700">Siniestro frustrado</span>
                     </label>
+                    
+                    <label className="flex items-center">
+                      <input
+                        type="checkbox"
+                        checked={editarSiniestro.finalizado || false}
+                        onChange={(e) => setEditarSiniestro(prev => ({ ...prev, finalizado: e.target.checked }))}
+                        className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                      />
+                      <span className="ml-2 text-sm text-gray-700">Siniestro finalizado</span>
+                    </label>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Detalle adicional
+                      </label>
+                      <textarea
+                        value={editarSiniestro.detalle || ''}
+                        onChange={(e) => setEditarSiniestro(prev => ({ ...prev, detalle: e.target.value }))}
+                        rows={3}
+                        placeholder="Ingrese detalles adicionales del siniestro..."
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900"
+                      />
+                    </div>
                   </div>
                 </div>
 
@@ -1702,7 +1953,15 @@ export default function SiniestrosPage() {
                     <div className="space-y-3">
                       <div className="flex justify-between">
                         <span className="font-medium text-gray-600">Fecha:</span>
-                        <span className="text-gray-900">{new Date(siniestroDetalle.fecha).toLocaleDateString('es-ES')}</span>
+                        <span className="text-gray-900">
+                          {new Date(siniestroDetalle.fecha).toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' })}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="font-medium text-gray-600">Hora:</span>
+                        <span className="text-gray-900">
+                          {siniestroDetalle.hora || '-'}
+                        </span>
                       </div>
                       <div className="flex justify-between">
                         <span className="font-medium text-gray-600">Sucursal:</span>
@@ -1831,7 +2090,17 @@ export default function SiniestrosPage() {
               )}
 
               {/* Botón de cierre */}
-              <div className="mt-8 flex justify-end">
+              <div className="mt-8 flex justify-end gap-3">
+                <button
+                  onClick={() => {
+                    setBoletinSiniestroId(siniestroDetalle.idSiniestro);
+                    setShowBoletinModal(true);
+                  }}
+                  className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2"
+                >
+                  <FiFileText className="w-5 h-5" />
+                  Generar Boletín
+                </button>
                 <button
                   onClick={() => {
                     setShowDetailModal(false);
@@ -1941,6 +2210,23 @@ export default function SiniestrosPage() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Modal de generación de boletín */}
+      {showBoletinModal && boletinSiniestroId && (
+        <BoletinGenerator
+          idSiniestro={boletinSiniestroId}
+          onClose={() => {
+            setShowBoletinModal(false);
+            setBoletinSiniestroId(null);
+          }}
+          onSuccess={() => {
+            setShowBoletinModal(false);
+            setBoletinSiniestroId(null);
+            // Recargar lista de siniestros
+            loadData();
+          }}
+        />
       )}
     </DashboardLayout>
   );

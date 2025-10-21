@@ -81,7 +81,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       const response = await authService.login(credentials);
       console.log('AuthContext: Respuesta recibida:', response);
       
-      if (response.access_token && response.user_info) {
+      if (response.user_info) {
         console.log('AuthContext: Estableciendo usuario:', response.user_info);
         setUser(response.user_info);
         setIsLoading(false);
@@ -97,8 +97,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   const logout = () => {
+    console.log('AuthContext: Ejecutando logout...');
     authService.logout();
     setUser(null);
+    console.log('AuthContext: Logout completado');
   };
 
   useEffect(() => {

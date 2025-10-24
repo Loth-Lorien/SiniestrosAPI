@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import ProtectedRoute from '../../components/ProtectedRoute';
 import DashboardLayout from '../../components/DashboardLayout';
+import ModalDetalleSucursal from '../../components/ModalDetalleSucursal';
+import { calcularMontoPerdidasReales } from '../../utils/perdidas';
 import { 
   FiMapPin, 
   FiRefreshCw,
@@ -47,6 +49,10 @@ export default function SucursalesPage() {
   // Paginación
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(25);
+  
+  // Modal detalle sucursal
+  const [modalDetalleOpen, setModalDetalleOpen] = useState(false);
+  const [sucursalSeleccionada, setSucursalSeleccionada] = useState<string>('');
 
   // Verificar autenticación al cargar
   useEffect(() => {
@@ -150,6 +156,11 @@ export default function SucursalesPage() {
     setRefreshing(true);
     await loadData();
     setRefreshing(false);
+  };
+
+  const handleVerDetalle = (idCentro: string) => {
+    setSucursalSeleccionada(idCentro);
+    setModalDetalleOpen(true);
   };
 
   const handleVerUbicacion = async (idCentro: string) => {
@@ -512,7 +523,11 @@ export default function SucursalesPage() {
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                           <div className="flex items-center space-x-2">
-                            <button className="text-blue-600 hover:text-blue-900" title="Ver detalles">
+                            <button 
+                              className="text-blue-600 hover:text-blue-900" 
+                              title="Ver detalles"
+                              onClick={() => handleVerDetalle(sucursal.IdCentro)}
+                            >
                               <FiEye className="w-4 h-4" />
                             </button>
                             <button className="text-green-600 hover:text-green-900" title="Editar">
@@ -649,6 +664,13 @@ export default function SucursalesPage() {
             </div>
           )}
         </div>
+
+        {/* Modal Detalle Sucursal */}
+        <ModalDetalleSucursal
+          isOpen={modalDetalleOpen}
+          onClose={() => setModalDetalleOpen(false)}
+          idCentro={sucursalSeleccionada}
+        />
       </DashboardLayout>
     </ProtectedRoute>
   );

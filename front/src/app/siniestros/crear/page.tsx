@@ -12,36 +12,14 @@ export default function CrearSiniestroPage() {
   const [mensaje, setMensaje] = useState<{ tipo: 'success' | 'error'; texto: string } | null>(null);
 
   const handleSave = async (data: CrearSiniestro | ActualizarSiniestro) => {
-    try {
-      console.log('🔄 Enviando datos del siniestro:', data);
-      
-      const response = await siniestrosService.crearSiniestro(data as CrearSiniestro);
-      
-      console.log('✅ Siniestro creado exitosamente:', response);
-      
-      setMensaje({
-        tipo: 'success',
-        texto: `✅ ${response.mensaje}`
-      });
-      
-      setMostrarFormulario(false);
-      
-    } catch (error: any) {
-      console.error('❌ Error creando siniestro:', error);
-      
-      let errorMessage = 'Error desconocido al crear el siniestro';
-      
-      if (error.response?.data?.detail) {
-        errorMessage = error.response.data.detail;
-      } else if (error.message) {
-        errorMessage = error.message;
-      }
-      
-      setMensaje({
-        tipo: 'error',
-        texto: `❌ ${errorMessage}`
-      });
-    }
+    // El FormularioSiniestro ya creó el siniestro y subió la foto
+    // Solo mostramos el mensaje de éxito
+    setMensaje({
+      tipo: 'success',
+      texto: `✅ Siniestro creado exitosamente con todos sus datos`
+    });
+    
+    setMostrarFormulario(false);
   };
 
   const handleCancel = () => {

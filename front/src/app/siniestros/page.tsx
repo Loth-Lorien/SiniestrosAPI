@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import DashboardLayout from '../../components/DashboardLayout';
 import BoletinGenerator from '../../components/BoletinGenerator';
+import { calcularMontoPerdidasReales } from '../../utils/perdidas';
 import { 
   FiPlus,
   FiEdit3,
@@ -32,9 +33,11 @@ interface Siniestro {
   IdTipoCuenta: number;
   Frustrado: boolean;
   Contemplar: boolean;
+  Finalizado?: boolean;
   Sucursal: string;
   Usuario: string;
   MontoTotal: number;
+  MontoRecuperado: number;
   CantidadDetalles: number;
   CantidadImplicados: number;
 }
@@ -156,7 +159,11 @@ export default function SiniestrosPage() {
 
   // Estados para manejo de archivos de boletín
   const [selectedFoto, setSelectedFoto] = useState<File | null>(null);
+  const [fotoPreview, setFotoPreview] = useState<string | null>(null);
   const fotoInputRef = useRef<HTMLInputElement>(null);
+
+  // Tipos de siniestro que requieren foto (normalizar para comparación)
+  const TIPOS_CON_FOTO = ['Asalto', 'Extorsion', 'Extorsión', 'Fardero', 'Farderos', 'Intruso', 'Intrusion', 'Intrusión', 'Sospechoso', 'Sospechosos'];
 
   // Formulario de nuevo siniestro
   const [nuevoSiniestro, setNuevoSiniestro] = useState<NuevoSiniestro>({
@@ -367,6 +374,83 @@ export default function SiniestrosPage() {
     }
   };
 
+  // Verificar si el tipo de siniestro requiere foto
+  const requiereFoto = (idTipoCuenta: number): boolean => {
+    const tipoSeleccionado = tiposSiniestro.find(t => t.idTipoSiniestro === idTipoCuenta);
+    return tipoSeleccionado ? TIPOS_CON_FOTO.includes(tipoSeleccionado.Cuenta) : false;
+  };
+
+  // Manejar selección de foto
+  const handleFotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      // Validar tamaño (max 10MB)
+      if (file.size > 10 * 1024 * 1024) {
+        setError('La imagen no puede superar los 10MB');
+        return;
+      }
+      
+      // Validar tipo
+      if (!file.type.startsWith('image/')) {
+        setError('Solo se permiten archivos de imagen');
+        return;
+      }
+      
+      setSelectedFoto(file);
+      
+      // Generar vista previa
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setFotoPreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+      setError(null);
+    }
+  };
+
+  // Subir foto del siniestro
+  const subirFotoSiniestro = async (idSiniestro: number) => {
+    if (!selectedFoto) return;
+    
+    try {
+      console.log('📸 Subiendo foto para siniestro ID:', idSiniestro);
+      
+      const formDataFoto = new FormData();
+      formDataFoto.append('file', selectedFoto);
+
+      const headers = getAuthHeaders();
+      if (!headers) {
+        throw new Error('No hay credenciales válidas');
+      }
+
+      // Crear un nuevo objeto sin Content-Type para que el navegador lo establezca automáticamente
+      const { 'Content-Type': _, ...headersWithoutContentType } = headers;
+
+      const fotoResponse = await fetch(
+        `http://localhost:8000/siniestros/${idSiniestro}/foto/subir`,
+        {
+          method: 'POST',
+          body: formDataFoto,
+          headers: headersWithoutContentType,
+        }
+      );
+
+      if (!fotoResponse.ok) {
+        const errorData = await fotoResponse.json().catch(() => ({ detail: 'Error desconocido' }));
+        console.error('❌ Error del servidor:', errorData);
+        throw new Error(errorData.detail || 'No se pudo subir la foto');
+      }
+      
+      const responseData = await fotoResponse.json();
+      console.log('✅ Foto subida exitosamente:', responseData);
+      return responseData;
+      
+    } catch (fotoError: any) {
+      console.error('❌ Error subiendo foto:', fotoError);
+      throw fotoError;
+    }
+  };
+
   // Crear nuevo siniestro
   const handleCreateSiniestro = async () => {
     setCreating(true);
@@ -399,42 +483,39 @@ export default function SiniestrosPage() {
       const result = await response.json();
       console.log('✅ Siniestro creado exitosamente:', result);
 
+      // Extraer ID del siniestro del mensaje
+      let idSiniestro: number | null = null;
+      if (result.mensaje) {
+        const idMatch = result.mensaje.match(/Id (\d+)/);
+        idSiniestro = idMatch ? parseInt(idMatch[1]) : null;
+        console.log('🔍 ID extraído del siniestro:', idSiniestro);
+      }
+
+      // Subir foto si se seleccionó y tenemos el ID
+      if (selectedFoto && idSiniestro) {
+        try {
+          await subirFotoSiniestro(idSiniestro);
+          console.log('✅ Foto subida exitosamente');
+        } catch (fotoError) {
+          console.error('⚠️ Siniestro creado pero error al subir foto:', fotoError);
+          // No interrumpir el flujo
+        }
+      }
+
       // Crear boletín si se proporcionó información
-      if (nuevoSiniestro.boletin?.boletin && nuevoSiniestro.boletin.boletin.trim() !== '') {
+      if (nuevoSiniestro.boletin?.boletin && nuevoSiniestro.boletin.boletin.trim() !== '' && idSiniestro) {
         try {
           console.log('📄 Creando boletín para el siniestro...');
           
-          // Crear boletín
-          const boletinResponse = await fetch('http://localhost:8000/boletines', {
+          // Crear boletín usando parámetros de query
+          const boletinText = encodeURIComponent(nuevoSiniestro.boletin.boletin);
+          const boletinResponse = await fetch(`http://localhost:8000/siniestros/${idSiniestro}/boletin?boletin=${boletinText}`, {
             method: 'POST',
             headers,
-            body: JSON.stringify({
-              idSiniestro: result.idSiniestro,
-              boletin: nuevoSiniestro.boletin.boletin
-            }),
           });
 
           if (boletinResponse.ok) {
             console.log('✅ Boletín creado exitosamente');
-            
-            // Subir foto si se seleccionó una
-            if (selectedFoto) {
-              const formData = new FormData();
-              formData.append('foto', selectedFoto);
-
-              const authHeaders = getAuthHeaders();
-              const fotoResponse = await fetch(`http://localhost:8000/boletines/${result.idSiniestro}/foto`, {
-                method: 'POST',
-                headers: authHeaders || undefined,
-                body: formData,
-              });
-
-              if (fotoResponse.ok) {
-                console.log('✅ Foto del boletín subida exitosamente');
-              } else {
-                console.warn('⚠️ Error subiendo foto del boletín');
-              }
-            }
           } else {
             console.warn('⚠️ Error creando boletín');
           }
@@ -472,6 +553,7 @@ export default function SiniestrosPage() {
 
       // Resetear foto seleccionada
       setSelectedFoto(null);
+      setFotoPreview(null);
       if (fotoInputRef.current) {
         fotoInputRef.current.value = '';
       }
@@ -767,37 +849,54 @@ export default function SiniestrosPage() {
   };
 
   // Funciones para manejo de boletín
-  const handleFotoChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      setSelectedFoto(file);
-    }
-  };
-
   const handleGenerarBoletin = async (siniestroId: number) => {
     try {
+      console.log(`📄 Intentando generar PDF para siniestro ${siniestroId}`);
       const authHeaders = getAuthHeaders();
-      const response = await fetch(`http://localhost:8000/boletines/${siniestroId}/pdf`, {
+      console.log('🔑 Headers de autenticación:', authHeaders);
+      
+      const response = await fetch(`http://localhost:8000/siniestros/${siniestroId}/boletin/pdf`, {
         method: 'GET',
         headers: authHeaders || undefined,
       });
 
+      console.log('📊 Response status:', response.status);
+      console.log('📊 Response ok:', response.ok);
+
       if (!response.ok) {
-        throw new Error('Error generando boletín PDF');
+        // Intentar obtener el mensaje de error del servidor
+        const errorText = await response.text();
+        console.error('❌ Error del servidor:', errorText);
+        
+        let errorMessage = 'Error generando boletín PDF';
+        try {
+          const errorJson = JSON.parse(errorText);
+          errorMessage = errorJson.detail || errorMessage;
+        } catch {
+          errorMessage = errorText || errorMessage;
+        }
+        
+        throw new Error(errorMessage);
       }
 
+      console.log('✅ Descargando PDF...');
       const blob = await response.blob();
+      console.log('📦 Blob size:', blob.size, 'bytes');
+      
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = `boletin-siniestro-${siniestroId}.pdf`;
+      link.download = `Boletin_Siniestro_${siniestroId}.pdf`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
+      
+      console.log('✅ PDF descargado exitosamente');
     } catch (error) {
-      console.error('Error generando boletín:', error);
-      alert('Error al generar el boletín PDF');
+      console.error('❌ Error generando boletín:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Error al generar el boletín PDF';
+      alert(`Error al generar el boletín PDF:\n${errorMessage}`);
     }
   };
 
@@ -822,8 +921,10 @@ export default function SiniestrosPage() {
     }
   };
 
+  // Ordenar por ID descendente
+  const sortedSiniestros = [...siniestros].sort((a, b) => b.IdSiniestro - a.IdSiniestro);
   // Filtrar siniestros
-  const filteredSiniestros = siniestros.filter(siniestro => {
+  const filteredSiniestros = sortedSiniestros.filter(siniestro => {
     const matchesSearch = siniestro.TipoSiniestro.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          siniestro.IdSiniestro.toString().includes(searchTerm) ||
                          siniestro.Sucursal.toLowerCase().includes(searchTerm.toLowerCase());
@@ -833,6 +934,15 @@ export default function SiniestrosPage() {
 
     return matchesSearch && matchesTipo && matchesSucursal && matchesEstado;
   });
+
+  // Paginación
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
+  const totalPages = Math.ceil(filteredSiniestros.length / itemsPerPage);
+  const paginatedSiniestros = filteredSiniestros.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
 
   const formatDate = (dateStr: string) => {
     try {
@@ -903,6 +1013,48 @@ export default function SiniestrosPage() {
             </button>
           </div>
         </div>
+
+        {/* Estadísticas rápidas (totales) */}
+        {filteredSiniestros.length > 0 && (
+          <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
+            <div className="bg-white rounded-lg shadow p-4">
+              <div className="text-2xl font-bold text-blue-600">
+                {filteredSiniestros.length}
+              </div>
+              <div className="text-sm text-gray-600">Total siniestros</div>
+            </div>
+            <div className="bg-white rounded-lg shadow p-4">
+              <div className="text-2xl font-bold text-red-600">
+                {filteredSiniestros.filter((s) => s.Frustrado).length}
+              </div>
+              <div className="text-sm text-gray-600">Frustrados</div>
+            </div>
+            <div className="bg-white rounded-lg shadow p-4">
+              <div className="text-2xl font-bold text-green-600">
+                {filteredSiniestros.filter((s) => !s.Frustrado).length}
+              </div>
+              <div className="text-sm text-gray-600">Concretados</div>
+            </div>
+            <div className="bg-white rounded-lg shadow p-4">
+              <div className="text-2xl font-bold text-orange-600">
+                ${filteredSiniestros.reduce((total, s) => total + s.MontoTotal, 0).toLocaleString()}
+              </div>
+              <div className="text-sm text-gray-600">Total Pérdidas</div>
+            </div>
+            <div className="bg-white rounded-lg shadow p-4">
+              <div className="text-2xl font-bold text-green-700">
+                ${filteredSiniestros.reduce((total, s) => total + (s.MontoRecuperado || 0), 0).toLocaleString()}
+              </div>
+              <div className="text-sm text-gray-600">Total Recuperado</div>
+            </div>
+            <div className="bg-white rounded-lg shadow p-4">
+              <div className="text-2xl font-bold text-yellow-600">
+                {filteredSiniestros.filter((s) => !s.Finalizado).length}
+              </div>
+              <div className="text-sm text-gray-600">Pendientes</div>
+            </div>
+          </div>
+        )}
 
         {/* Error Message */}
         {error && (
@@ -1011,31 +1163,17 @@ export default function SiniestrosPage() {
               <table className="w-full">
                 <thead className="bg-gray-50">
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      ID
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Descripción
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Fecha
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Estado
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Sucursal
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Centro
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Acciones
-                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Descripción</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Fecha</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Monto Pérdida</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Monto Recuperado</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Estado</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200">
-                  {filteredSiniestros.map((siniestro) => (
+                  {paginatedSiniestros.map((siniestro) => (
                     <tr key={siniestro.IdSiniestro} className="hover:bg-gray-50">
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                         {siniestro.IdSiniestro}
@@ -1044,6 +1182,8 @@ export default function SiniestrosPage() {
                         <div className="max-w-xs">
                           <div className="font-medium">{siniestro.TipoSiniestro}</div>
                           <div className="text-xs text-gray-500">Centro: {siniestro.IdCentro}</div>
+                          <div className="font-medium mt-1">{siniestro.Sucursal}</div>
+                          <div className="text-xs text-gray-400">Usuario: {siniestro.Usuario}</div>
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
@@ -1052,26 +1192,35 @@ export default function SiniestrosPage() {
                             <div className="text-xs text-gray-400 mt-1">{siniestro.Hora}</div>
                           )}
                       </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-red-600 font-bold">
+                        ${siniestro.MontoTotal?.toLocaleString() ?? '0'}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-green-600 font-bold">
+                        ${siniestro.MontoRecuperado?.toLocaleString() ?? '0'}
+                      </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${
-                          siniestro.Frustrado ? 'bg-red-100 text-red-800 border-red-200' : 
-                          siniestro.Contemplar ? 'bg-green-100 text-green-800 border-green-200' : 
-                          'bg-yellow-100 text-yellow-800 border-yellow-200'
-                        }`}>
-                          {siniestro.Frustrado ? 'Frustrado' : siniestro.Contemplar ? 'Contemplado' : 'Pendiente'}
+                        <span className="inline-flex space-x-2">
+                          <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium border ${
+                            siniestro.Frustrado
+                              ? 'bg-green-100 text-green-800 border-green-200'
+                              : siniestro.Contemplar
+                                ? 'bg-red-100 text-red-800 border-red-200'
+                                : 'bg-yellow-100 text-yellow-800 border-yellow-200'
+                          }`}>
+                            {siniestro.Frustrado
+                              ? 'Frustrado'
+                              : siniestro.Contemplar
+                                ? 'Concretado'
+                                : 'Pendiente'}
+                          </span>
+                          <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium border ${
+                            siniestro.Finalizado
+                              ? 'bg-green-100 text-green-800 border-green-200'
+                              : 'bg-blue-100 text-blue-800 border-blue-200'
+                          }`}>
+                            {siniestro.Finalizado ? 'Finalizado' : 'Pendiente'}
+                          </span>
                         </span>
-                      </td>
-                      <td className="px-6 py-4 text-sm text-gray-500">
-                        <div>
-                          <div className="font-medium">{siniestro.Sucursal}</div>
-                          <div className="text-xs text-gray-400">Usuario: {siniestro.Usuario}</div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-right">
-                        <div>
-                          <div className="font-medium text-red-600">${siniestro.MontoTotal.toLocaleString()}</div>
-                          <div className="text-xs text-gray-400">{siniestro.CantidadDetalles} detalles</div>
-                        </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                         <div className="flex items-center space-x-2">
@@ -1111,6 +1260,43 @@ export default function SiniestrosPage() {
                   ))}
                 </tbody>
               </table>
+              {/* Controles de paginación */}
+              <div className="flex justify-between items-center py-4">
+                <span className="text-sm text-gray-700 ml-4">
+                  Mostrando {((currentPage - 1) * itemsPerPage) + 1} a {Math.min(currentPage * itemsPerPage, filteredSiniestros.length)} de {filteredSiniestros.length} siniestros
+                </span>
+                <div className="bg-white rounded-lg shadow px-4 py-2 flex items-center space-x-2">
+                  <button
+                    className={`px-3 py-1 rounded border text-gray-500 bg-gray-100 cursor-pointer disabled:opacity-50 mr-1`}
+                    onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+                    disabled={currentPage === 1}
+                  >
+                    &lt; Anterior
+                  </button>
+                  {[...Array(Math.min(totalPages, 5)).keys()].map(i => {
+                    const page = i + 1;
+                    return (
+                      <button
+                        key={page}
+                        className={`px-3 py-1 rounded border mx-0.5 ${currentPage === page ? 'bg-blue-600 text-white font-bold' : 'bg-white text-gray-700 hover:bg-gray-100'}`}
+                        onClick={() => setCurrentPage(page)}
+                      >
+                        {page}
+                      </button>
+                    );
+                  })}
+                  {totalPages > 5 && (
+                    <span className="px-2 text-gray-500">...</span>
+                  )}
+                  <button
+                    className={`px-3 py-1 rounded border text-gray-500 bg-gray-100 cursor-pointer disabled:opacity-50 ml-1`}
+                    onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+                    disabled={currentPage === totalPages}
+                  >
+                    Siguiente &gt;
+                  </button>
+                </div>
+              </div>
             </div>
           ) : (
             <div className="text-center py-12">
@@ -1266,23 +1452,85 @@ export default function SiniestrosPage() {
 
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Detalle adicional
+                        Descripción del siniestro
                       </label>
                       <textarea
                         value={nuevoSiniestro.detalle || ''}
                         onChange={(e) => setNuevoSiniestro(prev => ({ ...prev, detalle: e.target.value }))}
-                        rows={3}
-                        placeholder="Ingrese detalles adicionales del siniestro..."
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900"
+                        rows={4}
+                        placeholder="Descripción general del siniestro."
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 resize-none"
                       />
+                      <p className="text-xs text-gray-500 mt-1">
+                        Este campo es importante para el registro y análisis del siniestro.
+                      </p>
                     </div>
+
+                    {/* Carga de Foto - Solo para tipos específicos */}
+                    {requiereFoto(nuevoSiniestro.idTipoCuenta) && (
+                      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          📸 Foto del Siniestro (Requerida)
+                        </label>
+                        <p className="text-xs text-blue-600 mb-3">
+                          Este tipo de siniestro requiere evidencia fotográfica para el boletín.
+                        </p>
+                        
+                        {fotoPreview ? (
+                          <div className="mb-3">
+                            <img 
+                              src={fotoPreview} 
+                              alt="Vista previa" 
+                              className="max-h-48 mx-auto rounded-lg shadow-md"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setSelectedFoto(null);
+                                setFotoPreview(null);
+                                if (fotoInputRef.current) {
+                                  fotoInputRef.current.value = '';
+                                }
+                              }}
+                              className="mt-2 w-full text-sm text-red-600 hover:text-red-800"
+                            >
+                              ❌ Eliminar foto
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="flex items-center justify-center w-full px-4 py-6 border-2 border-dashed border-blue-300 rounded-lg hover:bg-blue-100 transition cursor-pointer">
+                            <label className="flex flex-col items-center justify-center w-full h-full cursor-pointer">
+                              <div className="flex flex-col items-center justify-center pt-2 pb-2">
+                                <svg className="w-8 h-8 text-blue-500 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                                </svg>
+                                <p className="text-sm text-gray-700 font-medium">
+                                  Haz clic para seleccionar una foto
+                                </p>
+                                <p className="text-xs text-gray-500 mt-1">PNG, JPG o GIF (máx. 10MB)</p>
+                              </div>
+                              <input
+                                ref={fotoInputRef}
+                                type="file"
+                                accept="image/*"
+                                onChange={handleFotoChange}
+                                className="hidden"
+                              />
+                            </label>
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
 
-                  {/* Información del Boletín */}
-                  <div className="mt-6 border-t pt-6">
-                    <h4 className="text-md font-semibold text-gray-800 mb-4">Información del Boletín (Opcional)</h4>
-                    
-                    <div className="grid grid-cols-1 gap-4">
+                  {/* Información del Boletín - Solo para tipos con foto */}
+                  {requiereFoto(nuevoSiniestro.idTipoCuenta) && (
+                    <div className="mt-6 border-t pt-6 bg-green-50 p-4 rounded-lg">
+                      <h4 className="text-md font-semibold text-gray-800 mb-4">📋 Información del Boletín (Opcional)</h4>
+                      <p className="text-xs text-gray-600 mb-3">
+                        Agrega información adicional que aparecerá en el boletín generado para este siniestro.
+                      </p>
+                      
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">
                           Descripción del Boletín
@@ -1297,38 +1545,12 @@ export default function SiniestrosPage() {
                             } 
                           }))}
                           rows={4}
-                          placeholder="Descripción detallada del siniestro para el boletín..."
+                          placeholder="Descripción detallada del siniestro para el boletín (opcional)..."
                           className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900"
                         />
                       </div>
-
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Foto del Siniestro
-                        </label>
-                        <div className="flex items-center space-x-2">
-                          <input
-                            type="file"
-                            accept="image/*"
-                            onChange={handleFotoChange}
-                            className="hidden"
-                            ref={fotoInputRef}
-                          />
-                          <button
-                            type="button"
-                            onClick={() => fotoInputRef.current?.click()}
-                            className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 flex items-center text-gray-700"
-                          >
-                            <FiUpload className="w-4 h-4 mr-2" />
-                            {selectedFoto ? 'Cambiar foto' : 'Seleccionar foto'}
-                          </button>
-                          {selectedFoto && (
-                            <span className="text-sm text-gray-600">{selectedFoto.name}</span>
-                          )}
-                        </div>
-                      </div>
                     </div>
-                  </div>
+                  )}
 
                 </div>
 

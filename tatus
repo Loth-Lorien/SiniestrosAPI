@@ -1,0 +1,7 @@
+* [33m5cbcc2b[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmaster[m[33m, [m[1;31morigin/master[m[33m, [m[1;31morigin/HEAD[m[33m)[m feat: Implement BoletinGenerator component for generating reports from SVG templates
+* [33m807826f[m feat: Implementar formulario para crear y editar siniestros con validaciones y manejo de errores
+* [33m79affee[m Agregando scripts de inicio y configuración
+* [33md9d22fc[m Actualización local: cambios manuales y limpieza de archivos de prueba
+* [33ma7e43e2[m mejoras generales de conectividad
+* [33me60cdb9[m  Implementar verificaciones de seguridad robustas
+* [33m57b4736[m Initial commit: Sistema de Gestión de Siniestros completo con FastAPI y Next.js

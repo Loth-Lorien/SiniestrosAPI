@@ -39,6 +39,10 @@ export default function FormularioSiniestro({ modo, siniestro, onSave, onCancel 
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [fotoSeleccionada, setFotoSeleccionada] = useState<File | null>(null);
+  const [vistaPrevia, setVistaPrevia] = useState<string | null>(null);
+
+  // Tipos de siniestro que requieren foto (IDs correspondientes en la BD)
+  const TIPOS_CON_FOTO = ['Asalto', 'Extorsion', 'Fardero', 'Intruso', 'Sospechoso'];
 
   // Cargar catálogos
   useEffect(() => {
@@ -188,8 +192,34 @@ export default function FormularioSiniestro({ modo, siniestro, onSave, onCancel 
   const handleFotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      // Validar tamaño (max 10MB)
+      if (file.size > 10 * 1024 * 1024) {
+        setError('La imagen no puede superar los 10MB');
+        return;
+      }
+      
+      // Validar tipo
+      if (!file.type.startsWith('image/')) {
+        setError('Solo se permiten archivos de imagen');
+        return;
+      }
+      
       setFotoSeleccionada(file);
+      
+      // Generar vista previa
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setVistaPrevia(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+      setError(null);
     }
+  };
+
+  // Función para verificar si el tipo de siniestro requiere foto
+  const requiereFoto = (): boolean => {
+    const tipoSeleccionado = tiposSiniestro.find(t => t.idTipoSiniestro === formData.idTipoCuenta);
+    return tipoSeleccionado ? TIPOS_CON_FOTO.includes(tipoSeleccionado.Cuenta) : false;
   };
 
   // Guardar siniestro
@@ -219,64 +249,111 @@ export default function FormularioSiniestro({ modo, siniestro, onSave, onCancel 
         implicados: formData.implicados
       };
 
-      // Obtener respuesta con el ID del nuevo siniestro
-      const respuesta = await siniestrosService.crearSiniestro(data as CrearSiniestro);
-      
-      if (!respuesta.estatus) {
-        throw new Error(respuesta.mensaje || 'Error al crear siniestro');
-      }
+      let idSiniestro: number | null = null;
 
-      // Extraer ID del siniestro del mensaje (ej: "Siniestro creado con Id 123...")
-      const idMatch = respuesta.mensaje.match(/Id (\d+)/);
-      const idSiniestroNuevo = idMatch ? parseInt(idMatch[1]) : null;
-
-      // Si hay foto y se creó el siniestro, subirla
-      if (fotoSeleccionada && idSiniestroNuevo) {
-        try {
-          const formDataFoto = new FormData();
-          formDataFoto.append('file', fotoSeleccionada);
-
-          const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-          const authCredentials = localStorage.getItem('auth_credentials');
-          let headers: any = {};
-          
-          if (authCredentials) {
-            try {
-              const { username, password } = JSON.parse(authCredentials);
-              const basicAuth = btoa(`${username}:${password}`);
-              headers.Authorization = `Basic ${basicAuth}`;
-            } catch (parseError) {
-              console.error('Error parsing auth credentials:', parseError);
-            }
-          }
-
-          const fotoResponse = await fetch(
-            `${apiUrl}/siniestros/${idSiniestroNuevo}/foto/subir`,
-            {
-              method: 'POST',
-              body: formDataFoto,
-              headers,
-            }
-          );
-
-          if (!fotoResponse.ok) {
-            console.warn('Siniestro creado pero error al subir foto:', fotoResponse.statusText);
-          } else {
-            console.log('✅ Foto subida exitosamente');
-          }
-        } catch (fotoError) {
-          console.error('Error subiendo foto:', fotoError);
-          // No interrumpir el flujo si falla la foto
+      if (modo === 'crear') {
+        // Crear nuevo siniestro
+        console.log('📤 Creando siniestro...');
+        const respuesta = await siniestrosService.crearSiniestro(data as CrearSiniestro);
+        
+        if (!respuesta.estatus) {
+          throw new Error(respuesta.mensaje || 'Error al crear siniestro');
         }
+
+        console.log('✅ Siniestro creado:', respuesta.mensaje);
+
+        // Extraer ID del siniestro del mensaje (ej: "Siniestro creado con Id 123...")
+        const idMatch = respuesta.mensaje.match(/Id (\d+)/);
+        idSiniestro = idMatch ? parseInt(idMatch[1]) : null;
+        
+        console.log('🔍 ID extraído del siniestro:', idSiniestro);
+      } else {
+        // Editar siniestro existente
+        idSiniestro = siniestro?.IdSiniestro || null;
+        console.log('✏️ Editando siniestro con ID:', idSiniestro);
       }
 
+      // Si hay foto seleccionada y tenemos el ID del siniestro, subirla
+      if (fotoSeleccionada && idSiniestro) {
+        console.log('📸 Subiendo foto para siniestro ID:', idSiniestro);
+        console.log('📸 ¿Requiere foto?:', requiereFoto());
+        try {
+          await subirFotoSiniestro(idSiniestro);
+          console.log('✅ Foto subida exitosamente');
+        } catch (fotoError: any) {
+          console.error('❌ Error al subir foto:', fotoError);
+          setError(`Siniestro creado pero error al subir foto: ${fotoError.message}`);
+          // Aún así llamamos onSave para que se muestre el siniestro creado
+        }
+      } else {
+        if (!fotoSeleccionada) console.log('⚠️ No hay foto seleccionada');
+        if (!idSiniestro) console.log('⚠️ No se obtuvo ID del siniestro');
+      }
+
+      // Notificar que todo terminó correctamente
       onSave(data);
       
     } catch (err: any) {
-      console.error('Error guardando siniestro:', err);
+      console.error('❌ Error guardando siniestro:', err);
       setError(err.message || 'Error al guardar el siniestro');
     } finally {
       setSaving(false);
+    }
+  };
+
+  // Función auxiliar para subir foto
+  const subirFotoSiniestro = async (idSiniestro: number) => {
+    try {
+      console.log('📸 Iniciando subida de foto...');
+      console.log('📸 ID Siniestro:', idSiniestro);
+      console.log('📸 Archivo:', fotoSeleccionada?.name, fotoSeleccionada?.size, 'bytes');
+      
+      const formDataFoto = new FormData();
+      formDataFoto.append('file', fotoSeleccionada!);
+
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+      console.log('🌐 API URL:', apiUrl);
+      
+      const authCredentials = localStorage.getItem('auth_credentials');
+      let headers: any = {};
+      
+      if (authCredentials) {
+        try {
+          const { username, password } = JSON.parse(authCredentials);
+          const basicAuth = btoa(`${username}:${password}`);
+          headers.Authorization = `Basic ${basicAuth}`;
+          console.log('🔐 Autenticación configurada');
+        } catch (parseError) {
+          console.error('❌ Error parsing auth credentials:', parseError);
+        }
+      } else {
+        console.warn('⚠️ No hay credenciales de autenticación');
+      }
+
+      const url = `${apiUrl}/siniestros/${idSiniestro}/foto/subir`;
+      console.log('📤 Enviando a:', url);
+
+      const fotoResponse = await fetch(url, {
+        method: 'POST',
+        body: formDataFoto,
+        headers,
+      });
+
+      console.log('📥 Respuesta:', fotoResponse.status, fotoResponse.statusText);
+
+      if (!fotoResponse.ok) {
+        const errorData = await fotoResponse.json().catch(() => ({ detail: 'Error desconocido' }));
+        console.error('❌ Error del servidor:', errorData);
+        throw new Error(errorData.detail || 'No se pudo subir la foto');
+      }
+      
+      const responseData = await fotoResponse.json();
+      console.log('✅ Foto subida exitosamente:', responseData);
+      return responseData;
+      
+    } catch (fotoError: any) {
+      console.error('❌ Error subiendo foto:', fotoError);
+      throw fotoError; // Propagar el error para que se capture en handleSave
     }
   };
 
@@ -437,42 +514,71 @@ export default function FormularioSiniestro({ modo, siniestro, onSave, onCancel 
         {/* Detalle del siniestro */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
-            Detalle del Siniestro
+            📝 Descripción de los Hechos del Siniestro
           </label>
           <textarea
             value={formData.detalle}
             onChange={(e) => updateField('detalle', e.target.value)}
-            rows={3}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            placeholder="Descripción detallada del siniestro..."
+            rows={4}
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+            placeholder="Describa detalladamente los hechos del siniestro: qué ocurrió, cuándo, cómo, personas involucradas, etc..."
           />
+          <p className="text-xs text-gray-500 mt-1">
+            Este campo es importante para el registro y análisis del siniestro.
+          </p>
         </div>
 
-        {/* Carga de Foto */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            📸 Foto del Siniestro (Opcional)
-          </label>
-          <div className="flex items-center justify-center w-full px-4 py-6 border-2 border-dashed border-blue-300 rounded-lg hover:bg-blue-50 transition cursor-pointer">
-            <label className="flex flex-col items-center justify-center w-full h-full cursor-pointer">
-              <div className="flex flex-col items-center justify-center pt-2 pb-2">
-                <svg className="w-8 h-8 text-blue-500 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                </svg>
-                <p className="text-sm text-gray-600">
-                  {fotoSeleccionada ? `✓ ${fotoSeleccionada.name}` : "Haz clic para seleccionar una foto"}
-                </p>
-                <p className="text-xs text-gray-500 mt-1">PNG, JPG o GIF (máx. 10MB)</p>
-              </div>
-              <input
-                type="file"
-                accept="image/*"
-                onChange={handleFotoChange}
-                className="hidden"
-              />
+        {/* Carga de Foto - Solo para tipos específicos */}
+        {requiereFoto() && (
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              📸 Foto del Siniestro {requiereFoto() ? '(Requerida)' : '(Opcional)'}
             </label>
+            <p className="text-xs text-blue-600 mb-3">
+              Este tipo de siniestro requiere evidencia fotográfica para el boletín.
+            </p>
+            
+            {vistaPrevia ? (
+              <div className="mb-3">
+                <img 
+                  src={vistaPrevia} 
+                  alt="Vista previa" 
+                  className="max-h-48 mx-auto rounded-lg shadow-md"
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    setFotoSeleccionada(null);
+                    setVistaPrevia(null);
+                  }}
+                  className="mt-2 w-full text-sm text-red-600 hover:text-red-800"
+                >
+                  ❌ Eliminar foto
+                </button>
+              </div>
+            ) : (
+              <div className="flex items-center justify-center w-full px-4 py-6 border-2 border-dashed border-blue-300 rounded-lg hover:bg-blue-100 transition cursor-pointer">
+                <label className="flex flex-col items-center justify-center w-full h-full cursor-pointer">
+                  <div className="flex flex-col items-center justify-center pt-2 pb-2">
+                    <svg className="w-8 h-8 text-blue-500 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                    </svg>
+                    <p className="text-sm text-gray-700 font-medium">
+                      Haz clic para seleccionar una foto
+                    </p>
+                    <p className="text-xs text-gray-500 mt-1">PNG, JPG o GIF (máx. 10MB)</p>
+                  </div>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleFotoChange}
+                    className="hidden"
+                  />
+                </label>
+              </div>
+            )}
           </div>
-        </div>
+        )}
 
         {/* Pérdidas */}
         <div>

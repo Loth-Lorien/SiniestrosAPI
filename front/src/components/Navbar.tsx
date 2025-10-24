@@ -11,7 +11,8 @@ import {
   FiLogOut,
   FiMenu,
   FiX,
-  FiBarChart
+  FiBarChart,
+  FiBarChart2
 } from 'react-icons/fi';
 
 interface NavbarProps {
@@ -34,6 +35,7 @@ export default function Navbar({ currentPage = 'dashboard' }: NavbarProps) {
     { name: 'Siniestros', href: '/siniestros', icon: FiAlertTriangle, current: currentPage === 'siniestros' },
     { name: 'Usuarios', href: '/usuarios', icon: FiUsers, current: currentPage === 'usuarios' },
     { name: 'Reportes', href: '/reportes', icon: FiBarChart, current: currentPage === 'reportes' },
+    { name: 'Power BI', href: '/powerbi', icon: FiBarChart2, current: currentPage === 'powerbi' },
   ];
 
   return (

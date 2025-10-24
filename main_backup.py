@@ -30,15 +30,6 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, StreamingResponse, Response
 from pydantic import BaseModel, Field, validator
 
-# Importar módulo de generación de boletines
-from boletin_generator import (
-    renderizar_svg_con_datos,
-    svg_a_pdf,
-    svg_a_imagen_png,
-    guardar_foto_siniestro,
-    crear_carpeta_siniestro
-)
-
 from sqlalchemy import (
     create_engine, select, func, String, Integer, Date, DateTime, Boolean, Float, ForeignKey, Time,
     and_, text, literal_column, case
@@ -130,7 +121,6 @@ class Siniestro(Base):
     realizo: Mapped[Usuario] = relationship(lazy="joined")
     detalles: Mapped[List["SiniestroDetalle"]] = relationship(back_populates="siniestro", cascade="all, delete-orphan")
     implicados: Mapped[List["Implicado"]] = relationship(back_populates="siniestro", cascade="all, delete-orphan")
-    boletin: Mapped[Optional["Boletin"]] = relationship(cascade="all, delete-orphan", uselist=False)
 
 
 class TipoPerdida(Base):
@@ -177,14 +167,7 @@ class Implicado(Base):
     rango: Mapped[RangoEdad] = relationship(lazy="joined")
 
 
-class Boletin(Base):
-    __tablename__ = "Boletin"
-    idBoletin: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    IdSiniestro: Mapped[int] = mapped_column(Integer, ForeignKey("siniestros.IdSiniestro"))
-    Boletin: Mapped[Optional[str]] = mapped_column(String(455), nullable=True)
-    RutaFoto: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
 
-    siniestro: Mapped[Siniestro] = relationship(lazy="joined")
 
 
 # ====================
@@ -202,9 +185,7 @@ class DetalleImplicado(BaseModel):
     idRangoEdad: int
     detalle: Optional[str] = None
 
-class DetalleBoletin(BaseModel):
-    boletin: Optional[str] = None
-    rutaFoto: Optional[str] = None
+
 
 # Modelos para actualización (incluyen IDs para UPDATE)
 class DetallePerdidaUpdate(BaseModel):
@@ -232,9 +213,6 @@ class CrearSiniestro(BaseModel):
     perdidas: List[DetallePerdida] = Field(min_items=1, description="Lista de pérdidas asociadas al siniestro")
     implicados: List[DetalleImplicado] = Field(min_items=1, description="Lista de implicados en el siniestro")
     
-    # Información del boletín (opcional)
-    boletin: Optional[DetalleBoletin] = None
-    
     # Campos de compatibilidad (opcional, para mantener API anterior)
     detalleSiniestro: Optional[str] = None
     idTipoPerdida: Optional[int] = None
@@ -260,9 +238,6 @@ class ActualizarSiniestro(BaseModel):
     # Nuevas estructuras para múltiples pérdidas e implicados (con soporte para UPDATE)
     perdidas: Optional[List[DetallePerdidaUpdate]] = None
     implicados: Optional[List[DetalleImplicadoUpdate]] = None
-    
-    # Información del boletín (opcional)
-    boletin: Optional[DetalleBoletin] = None
     
     # Operaciones de gestión (para añadir/eliminar elementos específicos)
     eliminar_perdidas: Optional[List[int]] = Field(default=None, description="IDs de detalles de pérdida a eliminar")
@@ -649,8 +624,7 @@ def first_or_none(values: List[Optional[str]]) -> Optional[str]:
 
 
 def to_out_item(s: Siniestro) -> RespuestaSiniestrosItem:
-    # Calcular monto estimado solo con pérdidas NO recuperadas
-    monto_estimado = sum(d.Monto for d in (s.detalles or []) if not d.Recuperado) if s.detalles else 0.0
+    monto_estimado = sum(d.Monto for d in (s.detalles or [])) if s.detalles else 0.0
     
     # Crear lista de todas las pérdidas
     perdidas = []
@@ -1036,10 +1010,8 @@ def listar_siniestros(db: Session = Depends(get_db)):
         # Formatear datos
         siniestros_data = []
         for s in siniestros:
-            # Calcular monto total de pérdidas (solo las NO recuperadas)
-            monto_total = sum(detalle.Monto for detalle in s.detalles if not detalle.Recuperado)
-            # Calcular monto recuperado (solo las recuperadas)
-            monto_recuperado = sum(detalle.Monto for detalle in s.detalles if detalle.Recuperado)
+            # Calcular monto total de pérdidas
+            monto_total = sum(detalle.Monto for detalle in s.detalles)
             
             siniestros_data.append({
                 "IdSiniestro": s.IdSiniestro,
@@ -1055,7 +1027,6 @@ def listar_siniestros(db: Session = Depends(get_db)):
                 "Sucursal": s.centro.Sucursales if s.centro else "N/A",
                 "Usuario": s.realizo.NombreUsuario if s.realizo else "N/A",
                 "MontoTotal": monto_total,
-                "MontoRecuperado": monto_recuperado,
                 "CantidadDetalles": len(s.detalles),
                 "CantidadImplicados": len(s.implicados)
             })
@@ -1335,59 +1306,58 @@ def obtener_boletin(
     }
 
 
-# Endpoint antiguo comentado - usar /siniestros/{idSiniestro}/foto/subir en su lugar
-# @app.post("/upload-foto/{idSiniestro}")
-# async def subir_foto_siniestro(
-#     idSiniestro: int = Path(..., ge=1),
-#     file: UploadFile = File(...),
-#     db: Session = Depends(get_db),
-#     user: Usuario = Depends(get_current_user),
-# ):
-#     """Subir foto para un siniestro"""
-#     require_role(user, [ROLE_ADMIN, ROLE_COORD, ROLE_OPER])
-#     
-#     # Verificar que el siniestro existe
-#     s = db.get(Siniestro, idSiniestro)
-#     if not s:
-#         raise HTTPException(404, detail="Siniestro no encontrado")
-#     
-#     # Crear directorio si no existe
-#     upload_dir = f"uploads/siniestros/{idSiniestro}"
-#     os.makedirs(upload_dir, exist_ok=True)
-#     
-#     # Generar nombre único para el archivo
-#     file_extension = file.filename.split('.')[-1] if '.' in file.filename else 'jpg'
-#     filename = f"foto_siniestro_{idSiniestro}.{file_extension}"
-#     file_path = os.path.join(upload_dir, filename)
-#     
-#     # Guardar archivo
-#     try:
-#         with open(file_path, "wb") as buffer:
-#             content = await file.read()
-#             buffer.write(content)
-#     except Exception as e:
-#         raise HTTPException(500, detail=f"Error al guardar archivo: {str(e)}")
-#     
-#     # Actualizar o crear boletín con la ruta de la foto
-#     boletin_existente = db.execute(select(Boletin).where(Boletin.IdSiniestro == idSiniestro)).scalar_one_or_none()
-#     
-#     if boletin_existente:
-#         boletin_existente.RutaFoto = file_path
-#     else:
-#         nuevo_boletin = Boletin(
-#             IdSiniestro=idSiniestro,
-#             RutaFoto=file_path
-#         )
-#         db.add(nuevo_boletin)
-#     
-#     db.commit()
-#     
-#     return {
-#         "estatus": True,
-#         "mensaje": "Foto subida exitosamente",
-#         "rutaFoto": file_path,
-#         "nombreArchivo": filename
-#     }
+@app.post("/upload-foto/{idSiniestro}")
+async def subir_foto_siniestro(
+    idSiniestro: int = Path(..., ge=1),
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    user: Usuario = Depends(get_current_user),
+):
+    """Subir foto para un siniestro"""
+    require_role(user, [ROLE_ADMIN, ROLE_COORD, ROLE_OPER])
+    
+    # Verificar que el siniestro existe
+    s = db.get(Siniestro, idSiniestro)
+    if not s:
+        raise HTTPException(404, detail="Siniestro no encontrado")
+    
+    # Crear directorio si no existe
+    upload_dir = f"uploads/siniestros/{idSiniestro}"
+    os.makedirs(upload_dir, exist_ok=True)
+    
+    # Generar nombre único para el archivo
+    file_extension = file.filename.split('.')[-1] if '.' in file.filename else 'jpg'
+    filename = f"foto_siniestro_{idSiniestro}.{file_extension}"
+    file_path = os.path.join(upload_dir, filename)
+    
+    # Guardar archivo
+    try:
+        with open(file_path, "wb") as buffer:
+            content = await file.read()
+            buffer.write(content)
+    except Exception as e:
+        raise HTTPException(500, detail=f"Error al guardar archivo: {str(e)}")
+    
+    # Actualizar o crear boletín con la ruta de la foto
+    boletin_existente = db.execute(select(Boletin).where(Boletin.IdSiniestro == idSiniestro)).scalar_one_or_none()
+    
+    if boletin_existente:
+        boletin_existente.RutaFoto = file_path
+    else:
+        nuevo_boletin = Boletin(
+            IdSiniestro=idSiniestro,
+            RutaFoto=file_path
+        )
+        db.add(nuevo_boletin)
+    
+    db.commit()
+    
+    return {
+        "estatus": True,
+        "mensaje": "Foto subida exitosamente",
+        "rutaFoto": file_path,
+        "nombreArchivo": filename
+    }
 
 
 # ========================
@@ -1425,12 +1395,10 @@ def estadisticas_generales(
     
     for s in siniestros:
         for detalle in s.detalles or []:
+            monto_total_perdidas += detalle.Monto
             if detalle.Recuperado:
-                # Si está marcado como recuperado, suma al monto recuperado
-                monto_total_recuperado += detalle.Monto
-            else:
-                # Si NO está recuperado, suma al monto de pérdidas reales
-                monto_total_perdidas += detalle.Monto
+                # Asumimos recuperación parcial, aquí podrías tener un campo MontoRecuperado
+                monto_total_recuperado += detalle.Monto * 0.6  # Ejemplo: 60% de recuperación promedio
     
     # Calcular porcentajes
     porcentaje_frustrados = (siniestros_frustrados / total_siniestros * 100) if total_siniestros > 0 else 0
@@ -1456,11 +1424,11 @@ def estadisticas_por_tipo(
 ):
     """Estadísticas agrupadas por tipo de siniestro"""
     
-    # Query corregida: contar siniestros únicos y solo pérdidas NO recuperadas
+    # Query corregida: contar siniestros únicos, no detalles
     query = select(
         TipoSiniestro.Cuenta,
         func.count(func.distinct(Siniestro.IdSiniestro)).label('cantidad'),
-        func.coalesce(func.sum(case((SiniestroDetalle.Recuperado == False, SiniestroDetalle.Monto), else_=0)), 0).label('monto_total')
+        func.coalesce(func.sum(SiniestroDetalle.Monto), 0).label('monto_total')
     ).select_from(
         Siniestro.__table__.join(TipoSiniestro.__table__, Siniestro.IdTipoCuenta == TipoSiniestro.idTipoSiniestro)
         .outerjoin(SiniestroDetalle.__table__, Siniestro.IdSiniestro == SiniestroDetalle.IdSiniestros)
@@ -1552,9 +1520,7 @@ def estadisticas_por_zona(
     query_base = select(
         Zona.zona,
         func.count(func.distinct(Siniestro.IdSiniestro)).label('cantidad_siniestros'),
-        func.coalesce(func.sum(
-            case((SiniestroDetalle.Recuperado == False, SiniestroDetalle.Monto), else_=0)
-        ), 0).label('monto_total_perdidas'),
+        func.coalesce(func.sum(SiniestroDetalle.Monto), 0).label('monto_total_perdidas'),
         func.count(func.distinct(Sucursal.IdCentro)).label('sucursales_en_zona')
     ).select_from(
         Zona.__table__
@@ -1876,12 +1842,11 @@ async def vista_sucursales(db: Session = Depends(get_db)):
                 Siniestro.IdCentro == row.IdCentro
             ).scalar() or 0
             
-            # Calcular monto total de pérdidas (solo las NO recuperadas) desde SiniestrosDetalles
+            # Calcular monto total de pérdidas desde SiniestrosDetalles
             monto_perdidas = db.query(func.sum(SiniestroDetalle.Monto)).join(
                 Siniestro, SiniestroDetalle.IdSiniestros == Siniestro.IdSiniestro
             ).filter(
-                Siniestro.IdCentro == row.IdCentro,
-                SiniestroDetalle.Recuperado == False  # Solo pérdidas NO recuperadas
+                Siniestro.IdCentro == row.IdCentro
             ).scalar() or 0
             
             vista_sucursales.append({
@@ -1969,152 +1934,6 @@ async def sucursal_ubicacion(id_centro: str, db: Session = Depends(get_db)):
         raise HTTPException(
             status_code=500, 
             detail=f"Error al obtener información de ubicación: {str(e)}"
-        )
-
-@app.get("/sucursal_detalle/{id_centro}", dependencies=[Depends(get_current_user)])
-async def sucursal_detalle(id_centro: str, db: Session = Depends(get_db)):
-    """
-    Obtiene información completa de una sucursal específica incluyendo estadísticas de siniestros
-    """
-    siniestros_no_frustrados = db.query(func.count(Siniestro.IdSiniestro)).filter(
-        Siniestro.IdCentro == id_centro,
-        Siniestro.Contemplar == True,
-        Siniestro.Frustrado == False
-    ).scalar() or 0
-    try:
-        # Obtener datos principales desde vista_sucursales
-        query_vista = text("""
-            SELECT 
-                IdCentro,
-                Sucursales,
-                TipoSucursal,
-                Zona,
-                Estado,
-                EstadoActivo,
-                Municipio
-            FROM vista_sucursales
-            WHERE IdCentro = :id_centro
-        """)
-        result_vista = db.execute(query_vista, {"id_centro": id_centro})
-        row = result_vista.fetchone()
-        if not row:
-            raise HTTPException(status_code=404, detail=f"No se encontró la sucursal {id_centro}")
-
-        # Obtener ubicación desde v_sucursales_mapa
-        query_mapa = text("""
-            SELECT Latitud, Longitud, link_mymaps, link_maps FROM v_sucursales_mapa WHERE IdCentro = :id_centro
-        """)
-        result_mapa = db.execute(query_mapa, {"id_centro": id_centro})
-        mapa = result_mapa.fetchone()
-
-        # Estadísticas básicas usando consultas simples
-        total_siniestros = db.query(func.count(Siniestro.IdSiniestro)).filter(
-            Siniestro.IdCentro == id_centro,
-            Siniestro.Contemplar == True
-        ).scalar() or 0
-        siniestros_frustrados = db.query(func.count(Siniestro.IdSiniestro)).filter(
-            Siniestro.IdCentro == id_centro,
-            Siniestro.Contemplar == True,
-            Siniestro.Frustrado == True
-        ).scalar() or 0
-        siniestros_finalizados = db.query(func.count(Siniestro.IdSiniestro)).filter(
-            Siniestro.IdCentro == id_centro,
-            Siniestro.Contemplar == True,
-            Siniestro.Finalizado == True
-        ).scalar() or 0
-        siniestros_pendientes = db.query(func.count(Siniestro.IdSiniestro)).filter(
-            Siniestro.IdCentro == id_centro,
-            Siniestro.Contemplar == True,
-            Siniestro.Finalizado == False,
-            Siniestro.Frustrado == False
-        ).scalar() or 0
-
-        # Calcular monto total de pérdidas (solo las NO recuperadas) y monto recuperado
-        monto_total_perdidas = db.query(func.sum(SiniestroDetalle.Monto)).join(
-            Siniestro, SiniestroDetalle.IdSiniestros == Siniestro.IdSiniestro
-        ).filter(
-            Siniestro.IdCentro == id_centro,
-            Siniestro.Contemplar == True,
-            SiniestroDetalle.Recuperado == False  # Solo pérdidas NO recuperadas
-        ).scalar() or 0.0
-
-        monto_recuperado = db.query(func.sum(SiniestroDetalle.Monto)).join(
-            Siniestro, SiniestroDetalle.IdSiniestros == Siniestro.IdSiniestro
-        ).filter(
-            Siniestro.IdCentro == id_centro,
-            Siniestro.Contemplar == True,
-            SiniestroDetalle.Recuperado == True  # Solo pérdidas recuperadas
-        ).scalar() or 0.0
-
-        # Obtener los últimos 5 siniestros
-        ultimos_siniestros = db.query(Siniestro).options(
-            selectinload(Siniestro.tipo),
-            selectinload(Siniestro.detalles)
-        ).filter(
-            Siniestro.IdCentro == id_centro,
-            Siniestro.Contemplar == True
-        ).order_by(
-            Siniestro.Fecha.desc(), 
-            Siniestro.Hora.desc()
-        ).limit(5).all()
-
-        return {
-            "success": True,
-            "data": {
-                "informacion_basica": {
-                    "id_centro": row.IdCentro,
-                    "nombre": row.Sucursales,
-                    "zona": {
-                        "nombre": row.Zona
-                    },
-                    "estado": {
-                        "nombre": row.Estado,
-                        "municipio": row.Municipio
-                    },
-                    "tipo_sucursal": row.TipoSucursal,
-                    "estado_activo": bool(row.EstadoActivo) if row.EstadoActivo is not None else None,
-                    "ubicacion": {
-                        "latitud": float(mapa.Latitud) if mapa and mapa.Latitud else None,
-                        "longitud": float(mapa.Longitud) if mapa and mapa.Longitud else None,
-                        "link_mymaps": mapa.link_mymaps if mapa else None,
-                        "link_maps": mapa.link_maps if mapa else None
-                    }
-                },
-                "estadisticas": {
-                    "total_siniestros": total_siniestros,
-                    "monto_total_perdidas": float(monto_total_perdidas),
-                    "monto_recuperado": float(monto_recuperado),
-                    "siniestros_frustrados": siniestros_frustrados,
-                    "siniestros_finalizados": siniestros_finalizados,
-                    "siniestros_pendientes": siniestros_pendientes,
-                    "siniestros_no_frustrados": siniestros_no_frustrados,
-                    "siniestros_año_actual": total_siniestros,
-                    "siniestros_mes_actual": 0
-                },
-                "siniestros_por_tipo": [],
-                "ultimos_siniestros": [
-                    {
-                        "id": s.IdSiniestro,
-                        "fecha": s.Fecha.strftime("%Y-%m-%d") if s.Fecha else None,
-                        "hora": s.Hora.strftime("%H:%M:%S") if s.Hora else None,
-                        "tipo": s.tipo.Cuenta if s.tipo else "N/A",
-                        "frustrado": bool(s.Frustrado),
-                        "finalizado": bool(s.Finalizado),
-                        "monto_perdidas": sum(d.Monto for d in s.detalles if not d.Recuperado) if s.detalles else 0.0
-                    }
-                    for s in ultimos_siniestros
-                ]
-            }
-        }
-    except HTTPException:
-        raise
-    except Exception as e:
-        print(f"Error en sucursal_detalle: {str(e)}")
-        import traceback
-        traceback.print_exc()
-        raise HTTPException(
-            status_code=500, 
-            detail=f"Error al obtener información de la sucursal: {str(e)}"
         )
 
 @app.get("/boletines/{idSiniestro}/pdf")
@@ -2423,291 +2242,7 @@ async def subir_foto_boletin(
         print(f"❌ Error subiendo foto: {e}")
         raise HTTPException(status_code=500, detail=f"Error al guardar foto: {str(e)}")
 
-
-@app.get("/siniestros/{idSiniestro}/boletin/pdf")
-async def generar_boletin_pdf(
-    idSiniestro: int = Path(..., ge=1),
-    db: Session = Depends(get_db),
-    user: Usuario = Depends(get_current_user)
-):
-    """
-    Generar PDF del boletín usando el template HTML correspondiente al tipo de siniestro.
-    Rellena automáticamente: zona, idCentro, sucursal, fecha, descripción e imagen.
-    """
-    require_role(user, [ROLE_ADMIN, ROLE_COORD, ROLE_OPER])
-    
-    try:
-        from pathlib import Path as PathLib
-        import tempfile
-        import base64
-        from selenium import webdriver
-        from selenium.webdriver.chrome.options import Options
-        from selenium.webdriver.chrome.service import Service
-        from webdriver_manager.chrome import ChromeDriverManager
-        
-        print(f"📄 Generando PDF para siniestro {idSiniestro}")
-        
-        # Obtener siniestro
-        s = db.get(Siniestro, idSiniestro)
-        if not s:
-            print(f"❌ Siniestro {idSiniestro} no encontrado")
-            raise HTTPException(404, detail="Siniestro no encontrado")
-        
-        print(f"✅ Siniestro encontrado: {s.IdSiniestro}")
-        
-        # Obtener tipo de siniestro
-        tipo_siniestro = db.get(TipoSiniestro, s.IdTipoCuenta)
-        if not tipo_siniestro:
-            print(f"❌ Tipo de siniestro no encontrado para IdTipoCuenta: {s.IdTipoCuenta}")
-            raise HTTPException(404, detail="Tipo de siniestro no encontrado")
-        
-        tipo_cuenta = tipo_siniestro.Cuenta
-        print(f"✅ Tipo de siniestro: {tipo_cuenta}")
-        
-        # Mapeo de tipos a archivos HTML (normalizar nombres con/sin tilde y plural)
-        tipo_normalizado = tipo_cuenta.lower().strip()
-        html_map = {
-            "asalto": "BoletinAsalto.html",
-            "extorsion": "BoletinExtorsion.html",
-            "extorsión": "BoletinExtorsion.html",
-            "fardero": "BoletinFardero.html",
-            "farderos": "BoletinFardero.html",
-            "intruso": "BoletinIntrusion.html",
-            "intrusion": "BoletinIntrusion.html",
-            "intrusión": "BoletinIntrusion.html",
-            "sospechoso": "BoletinSospechoso.html",
-            "sospechosos": "BoletinSospechoso.html"
-        }
-        
-        html_file = html_map.get(tipo_normalizado)
-        if not html_file:
-            print(f"❌ No hay plantilla para tipo '{tipo_cuenta}'")
-            raise HTTPException(400, detail=f"No hay plantilla de boletín para el tipo '{tipo_cuenta}'")
-        
-        print(f"✅ Plantilla HTML: {html_file}")
-        
-        # Ruta al archivo HTML
-        boletin_path = PathLib("Boletin") / html_file
-        if not boletin_path.exists():
-            print(f"❌ Archivo no encontrado: {boletin_path}")
-            raise HTTPException(404, detail=f"Plantilla HTML no encontrada: {html_file}")
-        
-        print(f"✅ Leyendo plantilla desde: {boletin_path}")
-        
-        # Leer HTML
-        html_content = boletin_path.read_text(encoding='utf-8')
-        
-        # Remover el borde del contenedor y ajustar para PDF sin márgenes
-        html_content = html_content.replace(
-            'border: 0px solid #ccc;',
-            'border: none;'
-        )
-        html_content = html_content.replace(
-            'margin: 0 auto;',
-            'margin: 0;'
-        )
-        
-        # Obtener datos relacionados
-        sucursal = db.get(Sucursal, s.IdCentro)
-        zona = db.get(Zona, sucursal.idZona) if sucursal else None
-        
-        print(f"✅ Sucursal: {sucursal.Sucursales if sucursal else 'N/A'}")
-        print(f"✅ Zona: {zona.zona if zona else 'N/A'}")
-        
-        # Obtener boletín (texto e imagen)
-        boletin = db.execute(
-            select(Boletin).where(Boletin.IdSiniestro == idSiniestro)
-        ).scalar_one_or_none()
-        
-        print(f"✅ Boletín: {boletin.Boletin[:50] if boletin and boletin.Boletin else 'Sin texto'}")
-        print(f"✅ Foto: {boletin.RutaFoto if boletin and boletin.RutaFoto else 'Sin foto'}")
-        
-        # Preparar datos
-        zona_texto = zona.zona if zona else "N/A"
-        uden_texto = sucursal.IdCentro if sucursal else "N/A"
-        sucursal_texto = sucursal.Sucursales if sucursal else "N/A"
-        
-        # Formatear fecha y hora
-        if s.Fecha and s.Hora:
-            fecha_texto = f"{s.Fecha.strftime('%d/%m/%Y')} - {s.Hora.strftime('%H:%M')}"
-        elif s.Fecha:
-            fecha_texto = s.Fecha.strftime('%d/%m/%Y')
-        else:
-            fecha_texto = "N/A"
-        
-        descripcion_texto = boletin.Boletin if boletin and boletin.Boletin else ""
-        
-        # Convertir SVG de fondo a base64
-        svg_nombre = html_file.replace("Boletin", "").replace(".html", ".svg")  # BoletinAsalto.html -> Asalto.svg
-        svg_path = PathLib("Boletin") / svg_nombre
-        
-        svg_base64 = ""
-        if svg_path.exists():
-            with open(svg_path, "rb") as f:
-                svg_base64 = base64.b64encode(f.read()).decode()
-            print(f"✅ SVG convertido a base64: {svg_nombre}")
-        else:
-            print(f"⚠️ SVG no encontrado: {svg_path}")
-        
-        # Convertir imagen del siniestro a base64
-        imagen_base64 = ""
-        if boletin and boletin.RutaFoto:
-            ruta_foto_absoluta = PathLib(boletin.RutaFoto)
-            if not ruta_foto_absoluta.is_absolute():
-                ruta_foto_absoluta = PathLib.cwd() / boletin.RutaFoto
-            
-            if ruta_foto_absoluta.exists():
-                with open(ruta_foto_absoluta, "rb") as f:
-                    imagen_base64 = base64.b64encode(f.read()).decode()
-                print(f"✅ Imagen convertida a base64: {ruta_foto_absoluta.name}")
-            else:
-                print(f"⚠️ Imagen no encontrada: {ruta_foto_absoluta}")
-        
-        print(f"📝 Datos a insertar:")
-        print(f"  - Zona: {zona_texto}")
-        print(f"  - UDEN: {uden_texto}")
-        print(f"  - Sucursal: {sucursal_texto}")
-        print(f"  - Fecha: {fecha_texto}")
-        print(f"  - SVG: {'Sí' if svg_base64 else 'No'}")
-        print(f"  - Imagen: {'Sí' if imagen_base64 else 'No'}")
-        
-        # Reemplazar placeholders en el HTML
-        html_content = html_content.replace(
-            '<div class="zona"></div>',
-            f'<div class="zona">{zona_texto}</div>'
-        )
-        html_content = html_content.replace(
-            '<div class="uden"></div>',
-            f'<div class="uden">{uden_texto}</div>'
-        )
-        html_content = html_content.replace(
-            '<div class="sucursal"></div>',
-            f'<div class="sucursal">{sucursal_texto}</div>'
-        )
-        html_content = html_content.replace(
-            '<div class="fecha"></div>',
-            f'<div class="fecha">{fecha_texto}</div>'
-        )
-        # Reemplazar descripción (manejar diferentes formatos de espaciado)
-        import re
-        html_content = re.sub(
-            r'<div class="descripcion">\s*</div>',
-            f'<div class="descripcion">{descripcion_texto}</div>',
-            html_content
-        )
-        
-        # Reemplazar SVG de fondo con base64
-        if svg_base64:
-            html_content = html_content.replace(
-                'src="Asalto.svg"',
-                f'src="data:image/svg+xml;base64,{svg_base64}"'
-            )
-            html_content = html_content.replace(
-                'src="Extorsion.svg"',
-                f'src="data:image/svg+xml;base64,{svg_base64}"'
-            )
-            html_content = html_content.replace(
-                'src="Fardero.svg"',
-                f'src="data:image/svg+xml;base64,{svg_base64}"'
-            )
-            html_content = html_content.replace(
-                'src="Intrusion.svg"',
-                f'src="data:image/svg+xml;base64,{svg_base64}"'
-            )
-            html_content = html_content.replace(
-                'src="Sospechoso.svg"',
-                f'src="data:image/svg+xml;base64,{svg_base64}"'
-            )
-        
-        # Reemplazar imagen del siniestro con base64
-        if imagen_base64:
-            html_content = html_content.replace(
-                'src="./imagenesSiniestros/"',
-                f'src="data:image/jpeg;base64,{imagen_base64}"'
-            )
-        else:
-            # Si no hay imagen, remover el tag img para evitar error
-            html_content = html_content.replace(
-                '<img src="./imagenesSiniestros/" alt="Imagen siniestro" loading="lazy">',
-                ''
-            )
-        
-        # Crear archivo temporal con el HTML modificado
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.html', delete=False, encoding='utf-8') as temp_html:
-            temp_html.write(html_content)
-            temp_html_path = temp_html.name
-        
-        print(f"📄 Generando PDF con Chrome headless...")
-        
-        # Configurar Chrome en modo headless
-        chrome_options = Options()
-        chrome_options.add_argument('--headless')
-        chrome_options.add_argument('--disable-gpu')
-        chrome_options.add_argument('--no-sandbox')
-        chrome_options.add_argument('--disable-dev-shm-usage')
-        
-        # Configurar opciones de impresión a PDF SIN MÁRGENES
-        # 612px × 792px = 8.5" × 11" (Letter) en 72 DPI
-        print_options = {
-            'landscape': False,
-            'displayHeaderFooter': False,
-            'printBackground': True,
-            'preferCSSPageSize': True,
-            'marginTop': 0,
-            'marginBottom': 0,
-            'marginLeft': 0,
-            'marginRight': 0,
-            'paperWidth': 6.55,      # Ancho en pulgadas (Letter)
-            'paperHeight': 8.45,    # Alto en pulgadas (Letter)
-        }
-        
-        # Inicializar driver
-        service = Service(ChromeDriverManager().install())
-        driver = webdriver.Chrome(service=service, options=chrome_options)
-        
-        try:
-            # Cargar HTML desde archivo temporal
-            driver.get(f'file:///{temp_html_path.replace(chr(92), "/")}')
-            
-            # Esperar un momento para que se cargue todo
-            import time
-            time.sleep(1)
-            
-            # Generar PDF
-            pdf_data = driver.execute_cdp_cmd("Page.printToPDF", print_options)
-            pdf_bytes = base64.b64decode(pdf_data['data'])
-            
-            print(f"✅ PDF generado exitosamente ({len(pdf_bytes)} bytes)")
-            
-        finally:
-            driver.quit()
-            # Eliminar archivo temporal
-            PathLib(temp_html_path).unlink(missing_ok=True)
-        
-        # Retornar PDF
-        return Response(
-            content=pdf_bytes,
-            media_type="application/pdf",
-            headers={
-                "Content-Disposition": f"attachment; filename=Boletin_Siniestro_{idSiniestro}.pdf"
-            }
-        )
-        
-    except HTTPException:
-        raise
-    except Exception as e:
-        print(f"❌ Error generando PDF: {e}")
-        import traceback
-        traceback.print_exc()
-        raise HTTPException(500, detail=f"Error al generar PDF: {str(e)}")
-
-
 # ========================
 # Seeding opcional de roles (solo utilidad manual)
 # ========================
 
-# Ejecutar servidor
-if __name__ == "__main__":
-    import uvicorn
-    print("🚀 Iniciando servidor FastAPI en http://localhost:8000")
-    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)

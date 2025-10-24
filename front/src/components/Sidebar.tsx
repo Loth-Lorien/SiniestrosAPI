@@ -1,6 +1,6 @@
 "use client";
 import { useState } from 'react';
-import { FiHome, FiAlertTriangle, FiUsers, FiSettings, FiLogOut, FiBarChart } from 'react-icons/fi';
+import { FiHome, FiAlertTriangle, FiUsers, FiSettings, FiLogOut, FiBarChart, FiBarChart2 } from 'react-icons/fi';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -14,6 +14,7 @@ export default function Sidebar() {
     { name: 'Siniestros', href: '/siniestros', icon: FiAlertTriangle },
     { name: 'Usuarios', href: '/usuarios', icon: FiUsers },
     { name: 'Reportes', href: '/reportes', icon: FiBarChart },
+    { name: 'Power BI', href: '/powerbi', icon: FiBarChart2 },
   ];
 
   return (
@@ -40,33 +41,11 @@ export default function Sidebar() {
               onClick={() => router.push(item.href)}
               className="flex items-center w-full px-4 py-3 text-gray-700 hover:bg-blue-50 transition-colors"
             >
-              <item.icon className="w-5 h-5" />
-              {expanded && <span className="ml-3 text-base">{item.name}</span>}
+              <item.icon className="w-5 h-5 text-orange-500" />
+              {expanded && <span className="ml-3 text-base text-blue-600">{item.name}</span>}
             </button>
           ))}
         </nav>
-        {/* User & Logout */}
-        <div className="mt-auto mb-4 px-4">
-          <div className="flex items-center">
-            <div className="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center">
-              <span className="text-sm font-medium text-blue-600">
-                {user?.usuario?.[0]?.toUpperCase() || 'U'}
-              </span>
-            </div>
-            {expanded && (
-              <span className="ml-2 text-sm font-medium text-gray-700">
-                {user?.usuario || 'Usuario'}
-              </span>
-            )}
-          </div>
-          <button
-            onClick={logout}
-            className="flex items-center w-full mt-4 px-2 py-2 text-gray-700 hover:bg-blue-50 rounded transition-colors"
-          >
-            <FiLogOut className="w-5 h-5" />
-            {expanded && <span className="ml-2">Salir</span>}
-          </button>
-        </div>
       </div>
     </aside>
   );

@@ -28,31 +28,37 @@ interface NavItem {
 const navItems: NavItem[] = [
   {
     href: '/dashboard',
-    icon: <FiHome className="w-5 h-5" />,
+    icon: <FiHome className="w-5 h-5 text-orange-500" />,
     label: 'Dashboard',
     description: 'Vista general y estadísticas'
   },
   {
     href: '/siniestros',
-    icon: <FiAlertTriangle className="w-5 h-5" />,
+    icon: <FiAlertTriangle className="w-5 h-5 text-orange-500" />,
     label: 'Siniestros',
     description: 'Gestión de siniestros'
   },
   {
     href: '/estadisticas',
-    icon: <FiBarChart className="w-5 h-5" />,
+    icon: <FiBarChart className="w-5 h-5 text-orange-500" />,
     label: 'Estadísticas',
     description: 'Análisis y reportes'
   },
   {
     href: '/reportes',
-    icon: <FiFileText className="w-5 h-5" />,
+    icon: <FiFileText className="w-5 h-5 text-orange-500" />,
     label: 'Reportes',
     description: 'Informes detallados'
   },
   {
+    href: '/powerbi',
+    icon: <FiBarChart className="w-5 h-5 text-orange-500" />,
+    label: 'Power BI',
+    description: 'Panel de Power BI'
+  },
+  {
     href: '/sucursales',
-    icon: <FiUsers className="w-5 h-5" />,
+    icon: <FiUsers className="w-5 h-5 text-orange-500" />,
     label: 'Sucursales',
     description: 'Gestión de sucursales'
   }
@@ -79,12 +85,12 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
       {/* Sidebar */}
       <div className="fixed inset-y-0 left-0 w-64 bg-white shadow-lg z-50">
         {/* Header del Sidebar */}
-        <div className="flex items-center justify-center h-16 bg-blue-600 text-white">
+  <div className="flex items-center justify-center h-16 bg-blue-300 text-white">
           <div className="flex items-center space-x-2">
-            <FiAlertTriangle className="w-8 h-8" />
+            <img src="/iconoIS.png" alt="icono IS" className="w-10 h-10 object-contain" />
             <div>
-              <h1 className="text-xl font-bold">Siniestros</h1>
-              <p className="text-xs text-blue-200">Sistema de Gestión</p>
+              <h1 className="text-xl font-bold text-orange-500">Siniestros</h1>
+              <p className="text-xs text-orange-400">Sistema de Gestión</p>
             </div>
           </div>
         </div>
@@ -107,12 +113,12 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                     `}
                   >
                     <span className={`
-                      ${isActive ? 'text-blue-700' : 'text-gray-400'}
+                      ${isActive ? 'text-orange-600' : 'text-orange-500'}
                     `}>
                       {item.icon}
                     </span>
                     <div className="ml-3">
-                      <div className="font-medium">{item.label}</div>
+                      <div className={`font-medium ${isActive ? 'text-blue-700' : 'text-blue-600'}`}>{item.label}</div>
                       <div className="text-xs text-gray-500">{item.description}</div>
                     </div>
                   </Link>
@@ -122,36 +128,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
           </ul>
         </nav>
 
-        {/* Usuario y Logout */}
-        <div className="absolute bottom-4 left-4 right-4">
-          {user && (
-            <div className="mb-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-2">
-                  <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
-                    <FiUser className="w-4 h-4 text-white" />
-                  </div>
-                  <div>
-                    <p className="text-xs font-medium text-blue-900">{user.nombre}</p>
-                    <p className="text-xs text-blue-600">{user.rol}</p>
-                  </div>
-                </div>
-                <button
-                  onClick={handleLogout}
-                  className="p-1 text-blue-600 hover:text-red-600 transition-colors"
-                  title="Cerrar sesión"
-                >
-                  <FiLogOut className="w-4 h-4" />
-                </button>
-              </div>
-            </div>
-          )}
-          
-          <div className="p-3 bg-gray-100 rounded-lg text-center">
-            <p className="text-xs text-gray-600">API Siniestros v1.0</p>
-            <p className="text-xs text-gray-500">Desarrollado con Next.js</p>
-          </div>
-        </div>
+
       </div>
 
       {/* Contenido Principal */}

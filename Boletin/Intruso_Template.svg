@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="800" height="1000" viewBox="0 0 800 1000" xmlns="http://www.w3.org/2000/svg">
+  <!-- Fondo -->
+  <rect width="800" height="1000" fill="#f5f5f5"/>
+  
+  <!-- Encabezado -->
+  <rect width="800" height="100" fill="#1a1a1a"/>
+  <text x="50" y="45" font-size="32" font-weight="bold" fill="#ffffff" font-family="Arial">BOLETÍN DE INTRUSO</text>
+  <text x="50" y="75" font-size="14" fill="#cccccc" font-family="Arial">Reporte de Incidente - Intrusión/Allanamiento</text>
+  
+  <!-- Borde decorativo -->
+  <rect x="30" y="120" width="740" height="3" fill="#7b1fa2"/>
+  
+  <!-- Sección: Información General -->
+  <text x="50" y="170" font-size="16" font-weight="bold" fill="#1a1a1a" font-family="Arial">INFORMACIÓN GENERAL</text>
+  
+  <!-- Zona -->
+  <text x="50" y="210" font-size="12" font-weight="bold" fill="#666666" font-family="Arial">ZONA:</text>
+  <text x="150" y="210" font-size="12" fill="#1a1a1a" font-family="Arial" id="zona">{{ZONA}}</text>
+  
+  <!-- ID Centro -->
+  <text x="50" y="245" font-size="12" font-weight="bold" fill="#666666" font-family="Arial">ID CENTRO:</text>
+  <text x="150" y="245" font-size="12" fill="#1a1a1a" font-family="Arial" id="idcentro">{{IDCENTRO}}</text>
+  
+  <!-- Sucursal -->
+  <text x="50" y="280" font-size="12" font-weight="bold" fill="#666666" font-family="Arial">SUCURSAL:</text>
+  <text x="150" y="280" font-size="12" fill="#1a1a1a" font-family="Arial" id="sucursal">{{SUCURSAL}}</text>
+  
+  <!-- Sección: Fecha y Hora -->
+  <text x="50" y="330" font-size="16" font-weight="bold" fill="#1a1a1a" font-family="Arial">FECHA Y HORA DEL INCIDENTE</text>
+  
+  <!-- Fecha -->
+  <text x="50" y="370" font-size="12" font-weight="bold" fill="#666666" font-family="Arial">FECHA:</text>
+  <text x="150" y="370" font-size="12" fill="#1a1a1a" font-family="Arial" id="fecha">{{FECHA}}</text>
+  
+  <!-- Hora -->
+  <text x="50" y="405" font-size="12" font-weight="bold" fill="#666666" font-family="Arial">HORA:</text>
+  <text x="150" y="405" font-size="12" fill="#1a1a1a" font-family="Arial" id="hora">{{HORA}}</text>
+  
+  <!-- Sección: Descripción de los Hechos -->
+  <text x="50" y="455" font-size="16" font-weight="bold" fill="#1a1a1a" font-family="Arial">DESCRIPCIÓN DE LOS HECHOS</text>
+  
+  <!-- Descripción (texto multilinea) -->
+  <g id="descripcion-group">
+    <rect x="50" y="475" width="700" height="150" fill="white" stroke="#cccccc" stroke-width="1"/>
+    <text x="60" y="495" font-size="11" fill="#1a1a1a" font-family="Arial" id="descripcion" text-anchor="start">{{DESCRIPCION}}</text>
+  </g>
+  
+  <!-- Sección: Foto del Incidente -->
+  <text x="50" y="680" font-size="16" font-weight="bold" fill="#1a1a1a" font-family="Arial">FOTOGRAFÍA DEL INCIDENTE</text>
+  
+  <!-- Contenedor para foto -->
+  <rect x="50" y="700" width="700" height="200" fill="white" stroke="#cccccc" stroke-width="2" stroke-dasharray="5,5"/>
+  <image x="60" y="710" width="680" height="180" href="{{FOTO}}" preserveAspectRatio="xMidYMid slice"/>
+  
+  <!-- Pie de página -->
+  <line x1="50" y1="920" x2="750" y2="920" stroke="#7b1fa2" stroke-width="2"/>
+  <text x="50" y="960" font-size="10" fill="#999999" font-family="Arial">Generado automáticamente por Sistema de Siniestros</text>
+  <text x="50" y="980" font-size="10" fill="#999999" font-family="Arial">Fecha de generación: {{GENERATE_DATE}}</text>
+</svg>

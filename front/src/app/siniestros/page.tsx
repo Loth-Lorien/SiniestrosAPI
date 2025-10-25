@@ -930,7 +930,18 @@ export default function SiniestrosPage() {
                          siniestro.Sucursal.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesTipo = !selectedTipo || siniestro.TipoSiniestro === selectedTipo;
     const matchesSucursal = !selectedSucursal || siniestro.Sucursal === selectedSucursal;
-    const matchesEstado = !selectedEstado || (siniestro.Frustrado ? 'frustrado' : 'completado') === selectedEstado;
+    
+    // Lógica para filtrar por estado incluyendo pendientes
+    let matchesEstado = true;
+    if (selectedEstado) {
+      if (selectedEstado === 'frustrado') {
+        matchesEstado = siniestro.Frustrado;
+      } else if (selectedEstado === 'completado') {
+        matchesEstado = !siniestro.Frustrado;
+      } else if (selectedEstado === 'pendiente') {
+        matchesEstado = !siniestro.Finalizado;
+      }
+    }
 
     return matchesSearch && matchesTipo && matchesSucursal && matchesEstado;
   });
@@ -1016,42 +1027,48 @@ export default function SiniestrosPage() {
 
         {/* Estadísticas rápidas (totales) */}
         {filteredSiniestros.length > 0 && (
-          <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
-            <div className="bg-white rounded-lg shadow p-4">
-              <div className="text-2xl font-bold text-blue-600">
-                {filteredSiniestros.length}
+          <div className="space-y-4">
+            {/* Primera línea: Frustrados, Concretados, Pendientes, Total siniestros */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div className="bg-white rounded-lg shadow p-4">
+                <div className="text-2xl font-bold text-green-600">
+                  {filteredSiniestros.filter((s) => s.Frustrado).length}
+                </div>
+                <div className="text-sm text-gray-600">Frustrados</div>
               </div>
-              <div className="text-sm text-gray-600">Total siniestros</div>
+              <div className="bg-white rounded-lg shadow p-4">
+                <div className="text-2xl font-bold text-red-600">
+                  {filteredSiniestros.filter((s) => !s.Frustrado).length}
+                </div>
+                <div className="text-sm text-gray-600">Concretados</div>
+              </div>
+              <div className="bg-white rounded-lg shadow p-4">
+                <div className="text-2xl font-bold text-yellow-600">
+                  {filteredSiniestros.filter((s) => !s.Finalizado).length}
+                </div>
+                <div className="text-sm text-gray-600">Pendientes</div>
+              </div>
+              <div className="bg-white rounded-lg shadow p-4">
+                <div className="text-2xl font-bold text-blue-600">
+                  {filteredSiniestros.length}
+                </div>
+                <div className="text-sm text-gray-600">Total siniestros</div>
+              </div>
             </div>
-            <div className="bg-white rounded-lg shadow p-4">
-              <div className="text-2xl font-bold text-red-600">
-                {filteredSiniestros.filter((s) => s.Frustrado).length}
+            {/* Segunda línea: Total Pérdidas, Total Recuperado */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="bg-white rounded-lg shadow p-4">
+                <div className="text-2xl font-bold text-orange-600">
+                  ${filteredSiniestros.reduce((total, s) => total + s.MontoTotal, 0).toLocaleString()}
+                </div>
+                <div className="text-sm text-gray-600">Total Pérdidas</div>
               </div>
-              <div className="text-sm text-gray-600">Frustrados</div>
-            </div>
-            <div className="bg-white rounded-lg shadow p-4">
-              <div className="text-2xl font-bold text-green-600">
-                {filteredSiniestros.filter((s) => !s.Frustrado).length}
+              <div className="bg-white rounded-lg shadow p-4">
+                <div className="text-2xl font-bold text-green-700">
+                  ${filteredSiniestros.reduce((total, s) => total + (s.MontoRecuperado || 0), 0).toLocaleString()}
+                </div>
+                <div className="text-sm text-gray-600">Total Recuperado</div>
               </div>
-              <div className="text-sm text-gray-600">Concretados</div>
-            </div>
-            <div className="bg-white rounded-lg shadow p-4">
-              <div className="text-2xl font-bold text-orange-600">
-                ${filteredSiniestros.reduce((total, s) => total + s.MontoTotal, 0).toLocaleString()}
-              </div>
-              <div className="text-sm text-gray-600">Total Pérdidas</div>
-            </div>
-            <div className="bg-white rounded-lg shadow p-4">
-              <div className="text-2xl font-bold text-green-700">
-                ${filteredSiniestros.reduce((total, s) => total + (s.MontoRecuperado || 0), 0).toLocaleString()}
-              </div>
-              <div className="text-sm text-gray-600">Total Recuperado</div>
-            </div>
-            <div className="bg-white rounded-lg shadow p-4">
-              <div className="text-2xl font-bold text-yellow-600">
-                {filteredSiniestros.filter((s) => !s.Finalizado).length}
-              </div>
-              <div className="text-sm text-gray-600">Pendientes</div>
             </div>
           </div>
         )}
@@ -1145,6 +1162,7 @@ export default function SiniestrosPage() {
                 <option value="" className="text-gray-600">Todos los estados</option>
                 <option value="frustrado">Frustrado</option>
                 <option value="completado">Completado</option>
+                <option value="pendiente">Pendiente</option>
               </select>
             </div>
           </div>

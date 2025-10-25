@@ -90,7 +90,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
             <img src="/iconoIS.png" alt="icono IS" className="w-10 h-10 object-contain" />
             <div>
               <h1 className="text-xl font-bold text-orange-500">Siniestros</h1>
-              <p className="text-xs text-orange-400">Sistema de Gestión</p>
+              <p className="text-xs" style={{ color: '#0d5b8a' }}>Sistema de Gestión</p>
             </div>
           </div>
         </div>

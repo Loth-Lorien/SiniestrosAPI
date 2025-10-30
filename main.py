@@ -1991,7 +1991,10 @@ async def sucursal_detalle(id_centro: str, db: Session = Depends(get_db)):
                 Zona,
                 Estado,
                 EstadoActivo,
-                Municipio
+                Municipio,
+                Telefono,
+                Ext,
+                Direccion
             FROM vista_sucursales
             WHERE IdCentro = :id_centro
         """)
@@ -2006,6 +2009,35 @@ async def sucursal_detalle(id_centro: str, db: Session = Depends(get_db)):
         """)
         result_mapa = db.execute(query_mapa, {"id_centro": id_centro})
         mapa = result_mapa.fetchone()
+
+        # Obtener horarios de la sucursal
+        query_horarios = text("""
+            SELECT HorarioPublico, HorarioInterno, Detalle 
+            FROM HorarioSucursal 
+            WHERE idcentro = :id_centro
+        """)
+        result_horarios = db.execute(query_horarios, {"id_centro": id_centro})
+        horarios = result_horarios.fetchone()
+
+        # Obtener personal operativo de la sucursal
+        query_personal = text("""
+            SELECT 
+                po.idPersonalOperaciones,
+                po.Nombre,
+                po.Telefono,
+                po.Correo,
+                po.Detalle as DetallePersonal,
+                po.Estatus,
+                c.idCargo,
+                c.Cargo
+            FROM PersonalSucursales ps
+            JOIN PersonalOperaciones po ON ps.IdPersonalOperaciones = po.idPersonalOperaciones
+            LEFT JOIN Cargo c ON po.IdCargo = c.idCargo
+            WHERE ps.IdCentro = :id_centro
+            ORDER BY COALESCE(c.idCargo, '99'), po.Nombre
+        """)
+        result_personal = db.execute(query_personal, {"id_centro": id_centro})
+        personal_operativo = result_personal.fetchall()
 
         # Estadísticas básicas usando consultas simples
         total_siniestros = db.query(func.count(Siniestro.IdSiniestro)).filter(
@@ -2073,6 +2105,14 @@ async def sucursal_detalle(id_centro: str, db: Session = Depends(get_db)):
                     },
                     "tipo_sucursal": row.TipoSucursal,
                     "estado_activo": bool(row.EstadoActivo) if row.EstadoActivo is not None else None,
+                    "telefono": row.Telefono if hasattr(row, 'Telefono') and row.Telefono else None,
+                    "ext": row.Ext if hasattr(row, 'Ext') and row.Ext else None,
+                    "direccion": row.Direccion if hasattr(row, 'Direccion') and row.Direccion else None,
+                    "horarios": {
+                        "horario_publico": horarios.HorarioPublico if horarios and horarios.HorarioPublico else None,
+                        "horario_interno": horarios.HorarioInterno if horarios and horarios.HorarioInterno else None,
+                        "comentario": horarios.Detalle if horarios and horarios.Detalle else None
+                    },
                     "ubicacion": {
                         "latitud": float(mapa.Latitud) if mapa and mapa.Latitud else None,
                         "longitud": float(mapa.Longitud) if mapa and mapa.Longitud else None,
@@ -2103,6 +2143,19 @@ async def sucursal_detalle(id_centro: str, db: Session = Depends(get_db)):
                         "monto_perdidas": sum(d.Monto for d in s.detalles if not d.Recuperado) if s.detalles else 0.0
                     }
                     for s in ultimos_siniestros
+                ],
+                "personal_operativo": [
+                    {
+                        "id": p.idPersonalOperaciones,
+                        "nombre": p.Nombre,
+                        "telefono": p.Telefono,
+                        "correo": p.Correo,
+                        "cargo": p.Cargo,
+                        "id_cargo": p.idCargo,
+                        "detalle": p.DetallePersonal,
+                        "estatus": p.Estatus
+                    }
+                    for p in personal_operativo
                 ]
             }
         }

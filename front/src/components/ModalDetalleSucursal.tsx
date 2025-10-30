@@ -15,7 +15,11 @@ import {
   FiBarChart,
   FiTrendingUp,
   FiActivity,
-  FiEye
+  FiEye,
+  FiPhone,
+  FiUsers,
+  FiMail,
+  FiUser
 } from 'react-icons/fi';
 import ModalDetalleSiniestro from './ModalDetalleSiniestro';
 
@@ -33,6 +37,14 @@ interface InformacionBasica {
   };
   tipo_sucursal: string;
   estado_activo: boolean | null;
+  telefono: string | null;
+  ext: string | null;
+  direccion: string | null;
+  horarios: {
+    horario_publico: string | null;
+    horario_interno: string | null;
+    comentario: string | null;
+  };
   ubicacion: {
     latitud: number | null;
     longitud: number | null;
@@ -69,11 +81,23 @@ interface UltimoSiniestro {
   monto_perdidas: number;
 }
 
+interface PersonalOperativo {
+  id: number;
+  nombre: string;
+  telefono: string;
+  correo: string;
+  cargo: string;
+  id_cargo: string;
+  detalle: string | null;
+  estatus: number;
+}
+
 interface DetalleSucursal {
   informacion_basica: InformacionBasica;
   estadisticas: Estadisticas;
   siniestros_por_tipo: SiniestroPorTipo[];
   ultimos_siniestros: UltimoSiniestro[];
+  personal_operativo: PersonalOperativo[];
 }
 
 interface ModalDetalleSucursalProps {
@@ -266,6 +290,23 @@ export default function ModalDetalleSucursal({ isOpen, onClose, idCentro }: Moda
                     <p className="text-gray-900">{detalle.informacion_basica.estado.nombre} - {detalle.informacion_basica.estado.municipio}</p>
                   </div>
                   <div>
+                    <label className="text-sm font-medium text-gray-500">Dirección</label>
+                    <p className="text-gray-900">{detalle.informacion_basica.direccion || 'No disponible'}</p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-500">Teléfono</label>
+                    <div className="flex items-center space-x-1">
+                      <FiPhone className="w-4 h-4 text-gray-400" />
+                      <p className="text-gray-900">
+                        {detalle.informacion_basica.telefono || 'No disponible'}
+                      </p>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-500">Ext.</label>
+                    <p className="text-gray-900">{detalle.informacion_basica.ext || 'No disponible'}</p>
+                  </div>
+                  <div>
                     <label className="text-sm font-medium text-gray-500">Ubicación</label>
                     <div className="flex items-center space-x-2">
                       {detalle.informacion_basica.ubicacion.latitud && detalle.informacion_basica.ubicacion.longitud ? (
@@ -286,7 +327,83 @@ export default function ModalDetalleSucursal({ isOpen, onClose, idCentro }: Moda
                       )}
                     </div>
                   </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-500">Horario Público</label>
+                    <div className="flex items-center space-x-1">
+                      <FiClock className="w-4 h-4 text-gray-400" />
+                      <p className="text-gray-900">
+                        {detalle.informacion_basica.horarios.horario_publico || 'No disponible'}
+                      </p>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-500">Horario Interno</label>
+                    <div className="flex items-center space-x-1">
+                      <FiClock className="w-4 h-4 text-gray-400" />
+                      <p className="text-gray-900">
+                        {detalle.informacion_basica.horarios.horario_interno || 'No disponible'}
+                      </p>
+                    </div>
+                  </div>
+                  {detalle.informacion_basica.horarios.comentario && (
+                    <div className="col-span-1 md:col-span-2 lg:col-span-3">
+                      <label className="text-sm font-medium text-gray-500">Comentarios de Horario</label>
+                      <p className="text-gray-900 text-sm bg-gray-100 p-2 rounded">
+                        {detalle.informacion_basica.horarios.comentario}
+                      </p>
+                    </div>
+                  )}
                 </div>
+              </div>
+
+              {/* Personal Operativo */}
+              <div className="bg-gray-50 rounded-lg p-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                  <FiUsers className="w-5 h-5 mr-2" />
+                  Personal Operativo
+                </h3>
+                {detalle.personal_operativo && detalle.personal_operativo.length > 0 ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {detalle.personal_operativo.map((persona) => (
+                      <div key={persona.id} className="bg-white rounded-lg p-4 border border-gray-200 hover:shadow-md transition-shadow">
+                        <div className="flex items-center mb-3">
+                          <FiUser className="w-5 h-5 text-blue-600 mr-2" />
+                          <div>
+                            <h4 className="font-semibold text-gray-900">{persona.nombre}</h4>
+                            <span className="text-xs px-2 py-1 bg-blue-100 text-blue-800 rounded-full">
+                              {persona.cargo}
+                            </span>
+                          </div>
+                        </div>
+                        <div className="space-y-2 text-sm">
+                          <div className="flex items-center text-gray-600">
+                            <FiPhone className="w-4 h-4 mr-2" />
+                            <span>{persona.telefono}</span>
+                          </div>
+                          <div className="flex items-center text-gray-600">
+                            <FiMail className="w-4 h-4 mr-2" />
+                            <span className="truncate">{persona.correo}</span>
+                          </div>
+                          {persona.detalle && (
+                            <div className="text-xs text-gray-500 bg-gray-50 p-2 rounded mt-2">
+                              {persona.detalle}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-8">
+                    <FiUsers className="mx-auto h-12 w-12 text-gray-400" />
+                    <h3 className="mt-2 text-sm font-medium text-gray-900">
+                      No hay personal operativo registrado
+                    </h3>
+                    <p className="mt-1 text-sm text-gray-500">
+                      No se encontró personal operativo asignado a esta sucursal.
+                    </p>
+                  </div>
+                )}
               </div>
 
               {/* Estadísticas Generales */}

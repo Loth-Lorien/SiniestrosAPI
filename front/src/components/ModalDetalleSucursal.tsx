@@ -19,7 +19,9 @@ import {
   FiPhone,
   FiUsers,
   FiMail,
-  FiUser
+  FiUser,
+  FiShield,
+  FiPhoneCall
 } from 'react-icons/fi';
 import ModalDetalleSiniestro from './ModalDetalleSiniestro';
 
@@ -92,12 +94,24 @@ interface PersonalOperativo {
   estatus: number;
 }
 
+interface ContactoEmergencia {
+  id: number;
+  nombre: string;
+  telefono1: string;
+  telefono2: string | null;
+  detalle: string | null;
+  tipo_servicio: string;
+  id_tipo_servicio: string;
+  descripcion_tipo: string;
+}
+
 interface DetalleSucursal {
   informacion_basica: InformacionBasica;
   estadisticas: Estadisticas;
   siniestros_por_tipo: SiniestroPorTipo[];
   ultimos_siniestros: UltimoSiniestro[];
   personal_operativo: PersonalOperativo[];
+  contactos_emergencia: ContactoEmergencia[];
 }
 
 interface ModalDetalleSucursalProps {
@@ -401,6 +415,61 @@ export default function ModalDetalleSucursal({ isOpen, onClose, idCentro }: Moda
                     </h3>
                     <p className="mt-1 text-sm text-gray-500">
                       No se encontró personal operativo asignado a esta sucursal.
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              {/* Contactos de Seguridad Pública */}
+              <div className="bg-gray-50 rounded-lg p-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                  <FiShield className="w-5 h-5 mr-2" />
+                  Contactos de Seguridad Pública
+                </h3>
+                {detalle.contactos_emergencia && detalle.contactos_emergencia.length > 0 ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {detalle.contactos_emergencia.map((contacto) => (
+                      <div key={contacto.id} className="bg-white rounded-lg p-4 border border-gray-200 hover:shadow-md transition-shadow">
+                        <div className="flex items-center mb-3">
+                          <FiPhoneCall className="w-5 h-5 text-red-600 mr-2" />
+                          <div>
+                            <h4 className="font-semibold text-gray-900">{contacto.nombre}</h4>
+                            <span className="text-xs px-2 py-1 bg-red-100 text-red-800 rounded-full">
+                              {contacto.tipo_servicio}
+                            </span>
+                          </div>
+                        </div>
+                        <div className="space-y-2 text-sm">
+                          <div className="flex items-center text-gray-600">
+                            <FiPhone className="w-4 h-4 mr-2" />
+                            <span className="font-medium">{contacto.telefono1}</span>
+                          </div>
+                          {contacto.telefono2 && (
+                            <div className="flex items-center text-gray-600">
+                              <FiPhone className="w-4 h-4 mr-2" />
+                              <span>{contacto.telefono2}</span>
+                            </div>
+                          )}
+                          <div className="text-xs text-gray-500">
+                            {contacto.descripcion_tipo}
+                          </div>
+                          {contacto.detalle && (
+                            <div className="text-xs text-gray-500 bg-gray-50 p-2 rounded mt-2">
+                              {contacto.detalle}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-8">
+                    <FiShield className="mx-auto h-12 w-12 text-gray-400" />
+                    <h3 className="mt-2 text-sm font-medium text-gray-900">
+                      No hay contactos de emergencia registrados
+                    </h3>
+                    <p className="mt-1 text-sm text-gray-500">
+                      No se encontraron contactos de seguridad pública para este estado.
                     </p>
                   </div>
                 )}

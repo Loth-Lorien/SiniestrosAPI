@@ -237,6 +237,14 @@ export default function SucursalesPage() {
 
     return matchesSearch && matchesZona && matchesEstado;
   });
+    // Ordenar por IdCentro (numérico si es posible)
+    filteredSucursales.sort((a, b) => {
+      const idA = isNaN(Number(a.IdCentro)) ? a.IdCentro : Number(a.IdCentro);
+      const idB = isNaN(Number(b.IdCentro)) ? b.IdCentro : Number(b.IdCentro);
+      if (idA < idB) return -1;
+      if (idA > idB) return 1;
+      return 0;
+    });
 
   // Calcular paginación
   const totalPages = Math.ceil(filteredSucursales.length / itemsPerPage);

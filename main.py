@@ -2039,6 +2039,35 @@ async def sucursal_detalle(id_centro: str, db: Session = Depends(get_db)):
         result_personal = db.execute(query_personal, {"id_centro": id_centro})
         personal_operativo = result_personal.fetchall()
 
+        # Obtener contactos de emergencia según el municipio de la sucursal
+        # Usamos el nombre del municipio desde vista_sucursales para hacer JOIN con la tabla municipios
+        query_contactos_emergencia = text("""
+            SELECT 
+                ae.idAgendaEmergencia,
+                ae.Nombre,
+                ae.Telefono1,
+                ae.Telefono2,
+                ae.Detalle,
+                tse.idTipoServicioEmergencia,
+                tse.TipoServicioEmergencia,
+                tse.Descripción as DescripcionTipo,
+                vs.Municipio as NombreMunicipio,
+                vs.Estado as NombreEstado,
+                m.idMunicipios
+            FROM vista_sucursales vs
+            JOIN municipios m ON vs.Municipio = m.Municipio  
+            JOIN AgendaEmergencia ae ON m.idMunicipios = ae.IdMunicipio
+            JOIN TipoServicioEmergencia tse ON ae.IdTipoServicio = tse.idTipoServicioEmergencia
+            WHERE vs.IdCentro = :id_centro
+            ORDER BY tse.TipoServicioEmergencia, ae.Nombre
+        """)
+        result_contactos = db.execute(query_contactos_emergencia, {"id_centro": id_centro})
+        contactos_emergencia = result_contactos.fetchall()
+        
+        print(f"🏢 Sucursal {id_centro} - Contactos de emergencia encontrados: {len(contactos_emergencia)}")
+        for contacto in contactos_emergencia:
+            print(f"  - {contacto.Nombre} ({contacto.TipoServicioEmergencia}) - Municipio: {contacto.NombreMunicipio}, Estado: {contacto.NombreEstado} (IdMun: {contacto.idMunicipios}) - Tel: {contacto.Telefono1}")
+
         # Estadísticas básicas usando consultas simples
         total_siniestros = db.query(func.count(Siniestro.IdSiniestro)).filter(
             Siniestro.IdCentro == id_centro,
@@ -2150,12 +2179,25 @@ async def sucursal_detalle(id_centro: str, db: Session = Depends(get_db)):
                         "nombre": p.Nombre,
                         "telefono": p.Telefono,
                         "correo": p.Correo,
-                        "cargo": p.Cargo,
-                        "id_cargo": p.idCargo,
+                        "cargo": p.Cargo if p.Cargo else "Sin cargo",
+                        "id_cargo": p.idCargo if p.idCargo else "N/A",
                         "detalle": p.DetallePersonal,
-                        "estatus": p.Estatus
+                        "estatus": p.Estatus if p.Estatus else 1
                     }
                     for p in personal_operativo
+                ],
+                "contactos_emergencia": [
+                    {
+                        "id": c.idAgendaEmergencia,
+                        "nombre": c.Nombre,
+                        "telefono1": c.Telefono1,
+                        "telefono2": c.Telefono2,
+                        "detalle": c.Detalle,
+                        "tipo_servicio": c.TipoServicioEmergencia,
+                        "id_tipo_servicio": c.idTipoServicioEmergencia,
+                        "descripcion_tipo": c.DescripcionTipo
+                    }
+                    for c in contactos_emergencia
                 ]
             }
         }

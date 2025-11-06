@@ -2,10 +2,10 @@
 
 import { useState } from 'react';
 import { FiPlus, FiArrowLeft } from 'react-icons/fi';
-import DashboardLayout from '../../../components/DashboardLayout';
-import FormularioSiniestro from '../../../components/FormularioSiniestro';
-import { siniestrosService } from '../../../lib/services';
-import { CrearSiniestro, ActualizarSiniestro } from '../../../types/api';
+import DashboardLayout from '@/components/DashboardLayout';
+import FormularioSiniestro from '@/components/FormularioSiniestro';
+import { siniestrosService } from '@/lib/services';
+import { CrearSiniestro, ActualizarSiniestro } from '@/types/api';
 
 export default function CrearSiniestroPage() {
   const [mostrarFormulario, setMostrarFormulario] = useState(true);

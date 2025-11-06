@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { estadisticasService } from '../lib/services';
+import { estadisticasService } from '@/lib/services';
 import type { EstadisticasPorTipo, FiltrosEstadisticas } from '../types';
 
 interface UseEstadisticasPorTipoReturn {

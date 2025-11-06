@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { FiCheck, FiX, FiLoader, FiPlay, FiServer, FiWifi } from 'react-icons/fi';
-import DashboardLayout from '../../../components/DashboardLayout';
+import DashboardLayout from '@/components/DashboardLayout';
 
 interface TestResult {
   nombre: string;

@@ -7,19 +7,11 @@ const nextConfig: NextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
-  // Deshabilitamos turbopack para el build de producción
-  ...(process.env.NODE_ENV === 'production' ? {} : {
-    experimental: {
-      turbo: {
-        rules: {
-          '*.svg': {
-            loaders: ['@svgr/webpack'],
-            as: '*.js',
-          },
-        },
-      },
-    },
-  }),
+  // Configuración de webpack para mejor compatibilidad
+  webpack: (config, { isServer }) => {
+    // Optimizaciones adicionales si es necesario
+    return config;
+  },
 };
 
 export default nextConfig;

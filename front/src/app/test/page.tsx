@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { FiCheckCircle, FiDatabase, FiWifi } from 'react-icons/fi';
-import DashboardLayout from '../../components/DashboardLayout';
+import DashboardLayout from '@/components/DashboardLayout';
 
 export default function TestPage() {
   return (

@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { FiPlay, FiCheckCircle, FiAlertTriangle, FiRefreshCw } from 'react-icons/fi';
-import DashboardLayout from '../../../components/DashboardLayout';
+import DashboardLayout from '@/components/DashboardLayout';
 
 export default function TestEstadisticasPorTipo() {
   const [resultado, setResultado] = useState<any>(null);

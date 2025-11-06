@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import { FiHome, FiAlertTriangle, FiUsers, FiSettings, FiLogOut, FiBarChart, FiBarChart2 } from 'react-icons/fi';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function Sidebar() {
   const router = useRouter();

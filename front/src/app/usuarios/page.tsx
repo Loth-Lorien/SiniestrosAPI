@@ -1,7 +1,7 @@
 'use client';
 
-import ProtectedRoute from '../../components/ProtectedRoute';
-import DashboardLayout from '../../components/DashboardLayout';
+import ProtectedRoute from '@/components/ProtectedRoute';
+import DashboardLayout from '@/components/DashboardLayout';
 import { useState } from 'react';
 import { 
   FiUsers, 

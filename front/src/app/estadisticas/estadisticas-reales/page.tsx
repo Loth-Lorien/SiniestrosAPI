@@ -1,6 +1,6 @@
 'use client';
 
-import DashboardLayout from '../../../components/DashboardLayout';
+import DashboardLayout from '@/components/DashboardLayout';
 import { useState, useEffect } from 'react';
 import { 
   FiBarChart, 
@@ -14,14 +14,14 @@ import {
   FiRefreshCw,
   FiCheckCircle
 } from 'react-icons/fi';
-import { estadisticasService } from '../../../lib/services';
+import { estadisticasService } from '@/lib/services';
 import type { 
   EstadisticasGenerales,
   EstadisticasPorTipo,
   EstadisticasPorSucursal,
   EstadisticasPorMes,
   DashboardCompleto 
-} from '../../../types/api';
+} from '@/types/api';
 
 export default function EstadisticasRealesPage() {
   const [dashboard, setDashboard] = useState<DashboardCompleto | null>(null);

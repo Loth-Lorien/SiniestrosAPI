@@ -1,0 +1,69 @@
+# Docker ignore file for FastAPI Backend
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.pyc
+
+# Virtual environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Git
+.git
+.gitignore
+.gitattributes
+
+# Documentation
+*.md
+!README.md
+
+# Testing
+tests/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Database (local)
+*.db
+*.sqlite
+*.sqlite3
+database.db
+
+# Logs
+*.log
+logs/
+
+# Frontend (not needed in backend container)
+front/
+
+# Azure
+azure-pipelines.yml
+.azure/
+
+# Development files
+*.tmp
+*.temp
+.DS_Store
+iniciar.txt
+tatus
+temp_*.py
+test_*.py

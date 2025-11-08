@@ -36,7 +36,7 @@ export const authService = {
       // Usar HTTP Basic Auth para probar la autenticación con el backend
       const basicAuth = btoa(`${credentials.usuario}:${credentials.password}`);
       
-      const loginResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/usuarios`, {
+      const loginResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://siniestros-api.ahcbcddvbyg4ejew.westus2.azurecontainer.io:8000'}/usuarios`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',

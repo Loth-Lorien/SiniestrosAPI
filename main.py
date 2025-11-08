@@ -53,9 +53,17 @@ try:
 except Exception:  # pragma: no cover
     bcrypt = None  # Se maneja abajo
 
+# Construcción de DATABASE_URL desde variables de entorno separadas
+DB_HOST = os.getenv("DB_HOST", "localhost")
+DB_PORT = os.getenv("DB_PORT", "3306")
+DB_USER = os.getenv("DB_USER", "root")
+DB_PASSWORD = os.getenv("DB_PASSWORD", "1234")
+DB_NAME = os.getenv("DB_NAME", "siniestros_scisp")
+
+# Permitir override completo con DATABASE_URL si se proporciona
 DATABASE_URL = os.getenv(
     "DATABASE_URL",
-    "mysql+pymysql://root:1234@localhost:3306/siniestros_scisp?charset=utf8mb4",
+    f"mysql+pymysql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}?charset=utf8mb4",
 )
 
 engine = create_engine(

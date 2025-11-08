@@ -1,7 +1,7 @@
 'use client';
 
-import { useSiniestros } from '@/hooks/useApi';
-import { SiniestroCompleto } from '@/types/api';
+import { useSiniestros } from '../hooks/useApi';
+import { SiniestroCompleto } from '../types/api';
 import { FiClock, FiMapPin, FiUser, FiDollarSign, FiAlertCircle, FiRefreshCw } from 'react-icons/fi';
 
 export default function UltimosSiniestros() {

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { estadisticasService, siniestrosService } from '@/lib/services';
+import { estadisticasService, siniestrosService } from '../lib/services';
 import {
   EstadisticasGenerales,
   EstadisticasPorTipo,
@@ -11,7 +11,7 @@ import {
   FiltrosSiniestros,
   PaginatedResponse,
   SiniestroCompleto
-} from '@/types/api';
+} from '../types/api';
 
 // Hook para estadísticas generales
 export const useEstadisticasGenerales = (filtros?: FiltrosEstadisticas) => {

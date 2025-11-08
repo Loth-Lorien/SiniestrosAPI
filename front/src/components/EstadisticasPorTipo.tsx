@@ -1,7 +1,7 @@
 'use client';
 
-import { useEstadisticasPorTipo } from '@/hooks/useApi';
-import type { EstadisticasPorTipo as EstadisticasPorTipoType, FiltrosEstadisticas } from '@/types/api';
+import { useEstadisticasPorTipo } from '../hooks/useApi';
+import type { EstadisticasPorTipo as EstadisticasPorTipoType, FiltrosEstadisticas } from '../types/api';
 
 interface EstadisticasPorTipoProps {
   filtros?: FiltrosEstadisticas;

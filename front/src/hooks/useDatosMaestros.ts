@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { tiposService } from '@/lib/services';
+import { tiposService } from '../lib/services';
 import type { 
   TipoSiniestro, 
   TipoPerdida, 

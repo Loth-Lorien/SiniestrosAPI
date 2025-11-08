@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { FiCalendar, FiClock, FiSave, FiX, FiAlertCircle, FiCheck } from 'react-icons/fi';
-import { CrearSiniestro, ActualizarSiniestro, TipoSiniestro, Sucursal, Usuario } from '@/types/api';
-import { tiposService, siniestrosService } from '@/lib/services';
+import { CrearSiniestro, ActualizarSiniestro, TipoSiniestro, Sucursal, Usuario } from '../types/api';
+import { tiposService, siniestrosService } from '../lib/services';
 
 interface FormularioSiniestroProps {
   modo: 'crear' | 'editar';

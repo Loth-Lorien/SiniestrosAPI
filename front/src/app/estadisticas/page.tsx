@@ -16,7 +16,7 @@ import {
   FiSearch,
   FiHome
 } from 'react-icons/fi';
-import DashboardLayout from '@/components/DashboardLayout';
+import DashboardLayout from '../../components/DashboardLayout';
 
 // Interfaces para los datos de la API
 interface EstadisticasGenerales {

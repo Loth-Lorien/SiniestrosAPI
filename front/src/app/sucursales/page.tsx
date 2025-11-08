@@ -2,9 +2,9 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import ProtectedRoute from '@/components/ProtectedRoute';
-import DashboardLayout from '@/components/DashboardLayout';
-import ModalDetalleSucursal from '@/components/ModalDetalleSucursal';
+import ProtectedRoute from '../../components/ProtectedRoute';
+import DashboardLayout from '../../components/DashboardLayout';
+import ModalDetalleSucursal from '../../components/ModalDetalleSucursal';
 import { calcularMontoPerdidasReales } from '../../utils/perdidas';
 import { 
   FiMapPin, 

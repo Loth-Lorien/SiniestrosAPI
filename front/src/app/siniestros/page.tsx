@@ -2,8 +2,8 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import DashboardLayout from '@/components/DashboardLayout';
-import BoletinGenerator from '@/components/BoletinGenerator';
+import DashboardLayout from '../../components/DashboardLayout';
+import BoletinGenerator from '../../components/BoletinGenerator';
 import { calcularMontoPerdidasReales } from '../../utils/perdidas';
 import { 
   FiPlus,

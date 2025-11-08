@@ -117,8 +117,10 @@ export default function DashboardRealPage() {
 
       console.log('📊 Cargando datos del dashboard...');
 
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://siniestros-api.ahcbcddvbyg4ejew.westus2.azurecontainer.io:8000';
+
       // Cargar estadísticas generales con timeout
-      const statsResponse = await fetch('http://localhost:8000/estadisticas/generales', {
+      const statsResponse = await fetch(`${API_URL}/estadisticas/generales`, {
         headers,
         signal: AbortSignal.timeout(5000) // Timeout de 5 segundos
       });
@@ -139,7 +141,7 @@ export default function DashboardRealPage() {
 
       // Cargar siniestros recientes (intentar con y sin parámetros)
       try {
-        const siniestrosResponse = await fetch('http://localhost:8000/siniestros', {
+        const siniestrosResponse = await fetch(`${API_URL}/siniestros`, {
           headers
         });
 

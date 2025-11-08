@@ -46,8 +46,9 @@ interface EstadisticaPorZona {
 
 
 // Configurar axios
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://siniestros-api.ahcbcddvbyg4ejew.westus2.azurecontainer.io:8000';
 const api = axios.create({
-  baseURL: 'http://localhost:8000',
+  baseURL: API_URL,
 });
 api.interceptors.request.use((config) => {
   const authData = localStorage.getItem('auth_credentials');

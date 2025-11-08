@@ -246,8 +246,10 @@ export default function SiniestrosPage() {
 
       console.log('📊 Cargando datos de siniestros...');
 
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://siniestros-api.ahcbcddvbyg4ejew.westus2.azurecontainer.io:8000';
+
       // Cargar siniestros con timeout
-      const siniestrosResponse = await fetch('http://localhost:8000/siniestros', {
+      const siniestrosResponse = await fetch(`${API_URL}/siniestros`, {
         headers,
         signal: AbortSignal.timeout(5000) // Timeout de 5 segundos
       });
@@ -318,25 +320,27 @@ export default function SiniestrosPage() {
 
       console.log('📥 Cargando opciones del formulario...');
 
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://siniestros-api.ahcbcddvbyg4ejew.westus2.azurecontainer.io:8000';
+
       // Cargar todos los datos en paralelo
       const [tiposSiniestroRes, tiposPerdidaRes, sexosRes, rangosEdadRes, sucursalesRes] = await Promise.all([
-        fetch('http://localhost:8000/tiposiniestro', { 
+        fetch(`${API_URL}/tiposiniestro`, { 
           headers,
           signal: AbortSignal.timeout(5000) 
         }),
-        fetch('http://localhost:8000/tiposperdida', { 
+        fetch(`${API_URL}/tiposperdida`, { 
           headers,
           signal: AbortSignal.timeout(5000) 
         }),
-        fetch('http://localhost:8000/sexos', { 
+        fetch(`${API_URL}/sexos`, { 
           headers,
           signal: AbortSignal.timeout(5000) 
         }),
-        fetch('http://localhost:8000/rangosedad', { 
+        fetch(`${API_URL}/rangosedad`, { 
           headers,
           signal: AbortSignal.timeout(5000) 
         }),
-        fetch('http://localhost:8000/sucursales', { 
+        fetch(`${API_URL}/sucursales`, { 
           headers,
           signal: AbortSignal.timeout(5000) 
         })
@@ -426,8 +430,10 @@ export default function SiniestrosPage() {
       // Crear un nuevo objeto sin Content-Type para que el navegador lo establezca automáticamente
       const { 'Content-Type': _, ...headersWithoutContentType } = headers;
 
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://siniestros-api.ahcbcddvbyg4ejew.westus2.azurecontainer.io:8000';
+
       const fotoResponse = await fetch(
-        `http://localhost:8000/siniestros/${idSiniestro}/foto/subir`,
+        `${API_URL}/siniestros/${idSiniestro}/foto/subir`,
         {
           method: 'POST',
           body: formDataFoto,
@@ -468,7 +474,9 @@ export default function SiniestrosPage() {
       console.log('📝 Creando nuevo siniestro...');
       console.log('Datos del siniestro:', nuevoSiniestro);
 
-      const response = await fetch('http://localhost:8000/siniestros', {
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://siniestros-api.ahcbcddvbyg4ejew.westus2.azurecontainer.io:8000';
+
+      const response = await fetch(`${API_URL}/siniestros`, {
         method: 'POST',
         headers,
         body: JSON.stringify(nuevoSiniestro),
@@ -507,9 +515,11 @@ export default function SiniestrosPage() {
         try {
           console.log('📄 Creando boletín para el siniestro...');
           
+          const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://siniestros-api.ahcbcddvbyg4ejew.westus2.azurecontainer.io:8000';
+          
           // Crear boletín usando parámetros de query
           const boletinText = encodeURIComponent(nuevoSiniestro.boletin.boletin);
-          const boletinResponse = await fetch(`http://localhost:8000/siniestros/${idSiniestro}/boletin?boletin=${boletinText}`, {
+          const boletinResponse = await fetch(`${API_URL}/siniestros/${idSiniestro}/boletin?boletin=${boletinText}`, {
             method: 'POST',
             headers,
           });
@@ -622,7 +632,9 @@ export default function SiniestrosPage() {
 
       console.log(`📝 Cargando siniestro ${siniestroId} para editar...`);
 
-      const response = await fetch(`http://localhost:8000/siniestros/${siniestroId}`, {
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://siniestros-api.ahcbcddvbyg4ejew.westus2.azurecontainer.io:8000';
+
+      const response = await fetch(`${API_URL}/siniestros/${siniestroId}`, {
         headers,
         signal: AbortSignal.timeout(5000)
       });
@@ -692,7 +704,9 @@ export default function SiniestrosPage() {
 
       console.log(`👁️ Cargando detalle completo del siniestro ${siniestroId}...`);
 
-      const response = await fetch(`http://localhost:8000/siniestros/${siniestroId}`, {
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://siniestros-api.ahcbcddvbyg4ejew.westus2.azurecontainer.io:8000';
+
+      const response = await fetch(`${API_URL}/siniestros/${siniestroId}`, {
         headers,
         signal: AbortSignal.timeout(5000)
       });
@@ -735,7 +749,9 @@ export default function SiniestrosPage() {
 
       console.log(`🗑️ Eliminando siniestro ${deletingSiniestroId}...`);
 
-      const response = await fetch(`http://localhost:8000/siniestros/${deletingSiniestroId}`, {
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://siniestros-api.ahcbcddvbyg4ejew.westus2.azurecontainer.io:8000';
+
+      const response = await fetch(`${API_URL}/siniestros/${deletingSiniestroId}`, {
         method: 'DELETE',
         headers,
         signal: AbortSignal.timeout(10000)
@@ -797,7 +813,9 @@ export default function SiniestrosPage() {
       console.log('📝 Actualizando siniestro...', editingSiniestroId);
       console.log('Datos de actualización:', editarSiniestro);
 
-      const response = await fetch(`http://localhost:8000/siniestros/${editingSiniestroId}`, {
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://siniestros-api.ahcbcddvbyg4ejew.westus2.azurecontainer.io:8000';
+
+      const response = await fetch(`${API_URL}/siniestros/${editingSiniestroId}`, {
         method: 'PUT',
         headers,
         body: JSON.stringify(editarSiniestro),
@@ -855,7 +873,9 @@ export default function SiniestrosPage() {
       const authHeaders = getAuthHeaders();
       console.log('🔑 Headers de autenticación:', authHeaders);
       
-      const response = await fetch(`http://localhost:8000/siniestros/${siniestroId}/boletin/pdf`, {
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://siniestros-api.ahcbcddvbyg4ejew.westus2.azurecontainer.io:8000';
+      
+      const response = await fetch(`${API_URL}/siniestros/${siniestroId}/boletin/pdf`, {
         method: 'GET',
         headers: authHeaders || undefined,
       });

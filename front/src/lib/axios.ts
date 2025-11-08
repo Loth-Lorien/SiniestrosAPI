@@ -1,8 +1,9 @@
 import axios from 'axios';
+import { API_URL } from './config';
 
 // Configuración base del cliente HTTP
 const apiClient = axios.create({
-  baseURL: 'http://siniestros-api.ahcbcddvbyg4ejew.westus2.azurecontainer.io:8000',
+  baseURL: API_URL,
   timeout: 30000,
   headers: {
     'Content-Type': 'application/json',

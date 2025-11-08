@@ -311,7 +311,7 @@ export default function FormularioSiniestro({ modo, siniestro, onSave, onCancel 
       const formDataFoto = new FormData();
       formDataFoto.append('file', fotoSeleccionada!);
 
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://siniestros-api.ahcbcddvbyg4ejew.westus2.azurecontainer.io:8000';
       console.log('🌐 API URL:', apiUrl);
       
       const authCredentials = localStorage.getItem('auth_credentials');

@@ -31,7 +31,8 @@ export default function LoginRealPage() {
     const testConnection = async () => {
       setTestingConnection(true);
       try {
-        const response = await fetch('http://localhost:8000/', {
+        const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://siniestros-api.ahcbcddvbyg4ejew.westus2.azurecontainer.io:8000';
+        const response = await fetch(`${API_URL}/`, {
           method: 'GET',
           headers: { 'Content-Type': 'application/json' }
         });
@@ -40,7 +41,7 @@ export default function LoginRealPage() {
           throw new Error('Backend no disponible');
         }
       } catch (error) {
-        setError('No se puede conectar con el backend. ¿Está corriendo en puerto 8000?');
+        setError('No se puede conectar con el backend.');
       } finally {
         setTestingConnection(false);
       }
@@ -74,9 +75,10 @@ export default function LoginRealPage() {
       
       // Crear credenciales HTTP Basic Auth
       const basicAuth = btoa(`${formData.usuario}:${formData.password}`);
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://siniestros-api.ahcbcddvbyg4ejew.westus2.azurecontainer.io:8000';
       
       // Probar autenticación con un endpoint protegido
-      const response = await fetch('http://localhost:8000/usuarios', {
+      const response = await fetch(`${API_URL}/usuarios`, {
         method: 'GET',
         headers: {
           'Authorization': `Basic ${basicAuth}`,

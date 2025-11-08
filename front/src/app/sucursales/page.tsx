@@ -98,8 +98,10 @@ export default function SucursalesPage() {
 
       console.log('🏢 Cargando datos de sucursales...');
 
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://siniestros-api.ahcbcddvbyg4ejew.westus2.azurecontainer.io:8000';
+
       // Cargar sucursales con timeout
-      const sucursalesResponse = await fetch('http://localhost:8000/vista_sucursales', {
+      const sucursalesResponse = await fetch(`${API_URL}/vista_sucursales`, {
         headers,
         signal: AbortSignal.timeout(5000) // Timeout de 5 segundos
       });
@@ -174,7 +176,9 @@ export default function SucursalesPage() {
       const { username, password } = JSON.parse(authData);
       const basicAuth = btoa(`${username}:${password}`);
 
-      const response = await fetch(`http://localhost:8000/sucursal_ubicacion/${idCentro}`, {
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://siniestros-api.ahcbcddvbyg4ejew.westus2.azurecontainer.io:8000';
+
+      const response = await fetch(`${API_URL}/sucursal_ubicacion/${idCentro}`, {
         method: 'GET',
         headers: {
           'Authorization': `Basic ${basicAuth}`,

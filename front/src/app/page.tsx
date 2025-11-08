@@ -23,7 +23,8 @@ export default function Home() {
 
   const checkBackendStatus = async () => {
     try {
-      const response = await fetch('http://localhost:8000/', { method: 'GET' });
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://siniestros-api.ahcbcddvbyg4ejew.westus2.azurecontainer.io:8000';
+      const response = await fetch(`${API_URL}/`, { method: 'GET' });
       setBackendStatus(response.ok ? 'connected' : 'disconnected');
     } catch (error) {
       setBackendStatus('disconnected');

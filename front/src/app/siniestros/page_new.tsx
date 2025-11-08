@@ -113,8 +113,10 @@ export default function SiniestrosPage() {
 
       console.log('📊 Cargando datos de siniestros...');
 
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://siniestros-api.ahcbcddvbyg4ejew.westus2.azurecontainer.io:8000';
+
       // Cargar siniestros
-      const siniestrosResponse = await fetch('http://localhost:8000/siniestros', {
+      const siniestrosResponse = await fetch(`${API_URL}/siniestros`, {
         headers
       });
 
@@ -133,7 +135,7 @@ export default function SiniestrosPage() {
 
       // Cargar tipos de siniestro
       try {
-        const tiposResponse = await fetch('http://localhost:8000/tiposiniestro', { headers });
+        const tiposResponse = await fetch(`${API_URL}/tiposiniestro`, { headers });
         if (tiposResponse.ok) {
           const tiposData = await tiposResponse.json();
           setTiposSiniestro(tiposData || []);
@@ -144,7 +146,7 @@ export default function SiniestrosPage() {
 
       // Cargar sucursales
       try {
-        const sucursalesResponse = await fetch('http://localhost:8000/sucursales', { headers });
+        const sucursalesResponse = await fetch(`${API_URL}/sucursales`, { headers });
         if (sucursalesResponse.ok) {
           const sucursalesData = await sucursalesResponse.json();
           setSucursales(sucursalesData || []);

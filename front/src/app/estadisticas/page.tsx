@@ -130,16 +130,24 @@ export default function EstadisticasPage() {
       setSucursales(Array.isArray(sucursalesRes.data.data) ? sucursalesRes.data.data : []);
     } catch (error: any) {
       console.error('❌ Error cargando datos de estadísticas:', error);
+      
+      // Solo redirigir al login si es error 401 (no autorizado)
+      if (error.response && error.response.status === 401) {
+        localStorage.removeItem('auth_credentials');
+        localStorage.removeItem('user_data');
+        alert('Sesión expirada. Serás redirigido al login.');
+        router.push('/login');
+        return;
+      }
+      
+      // Para otros errores, solo mostrar mensaje sin redirigir
       if (error.code === 'ECONNREFUSED' || error.code === 'TIMEOUT' || 
           (error.response && error.response.status >= 500) ||
           error.message?.includes('Network Error') ||
           error.message?.includes('timeout')) {
-        localStorage.removeItem('auth_credentials');
-        localStorage.removeItem('user_data');
-        alert('Servidor no disponible. Serás redirigido al login.');
-        router.push('/login');
-        return;
+        alert('Error de conexión con el servidor. Por favor, intenta más tarde.');
       }
+      
       setEstadisticasPorTipo([]);
       setEstadisticasPorZona([]);
       setSucursales([]);

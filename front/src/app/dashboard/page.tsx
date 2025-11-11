@@ -160,27 +160,17 @@ export default function DashboardRealPage() {
     } catch (err: any) {
       console.error('❌ Error cargando dashboard:', err);
       
-      // Si es un error de red (backend apagado), redirigir al login
+      // Si es un error de red (backend completamente apagado)
       if (err.name === 'TypeError' && err.message.includes('fetch')) {
-        console.error('🔴 Backend no disponible - redirigiendo al login');
-        localStorage.removeItem('auth_credentials');
-        localStorage.removeItem('user_data');
-        setError('Servidor no disponible. Redirigiendo al login...');
-        setTimeout(() => {
-          router.push('/login');
-        }, 2000);
+        console.error('🔴 Backend no disponible');
+        setError('Servidor no disponible. Verifique su conexión.');
         return;
       }
       
       // Si es timeout
       if (err.name === 'TimeoutError') {
-        console.error('⏰ Timeout del servidor - redirigiendo al login');
-        localStorage.removeItem('auth_credentials');
-        localStorage.removeItem('user_data');
-        setError('Servidor no responde. Redirigiendo al login...');
-        setTimeout(() => {
-          router.push('/login');
-        }, 2000);
+        console.error('⏰ Timeout del servidor');
+        setError('El servidor está tardando demasiado en responder.');
         return;
       }
       

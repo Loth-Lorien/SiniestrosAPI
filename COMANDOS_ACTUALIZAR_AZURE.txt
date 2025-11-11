@@ -1,0 +1,76 @@
+# =========================================================================
+# PASOS PARA ACTUALIZAR LA API EN AZURE CON CORS CORREGIDO
+# =========================================================================
+# Copia y pega estos comandos UNO POR UNO en tu terminal de PowerShell
+# donde ya has ejecutado 'az login' anteriormente
+# =========================================================================
+
+# PASO 1: Verificar conexión con Azure
+# --------------------------------------
+az account show
+
+
+# PASO 2: Reconstruir la imagen Docker con el código actualizado
+# ---------------------------------------------------------------
+# Esto tomará varios minutos. Espera a que termine antes de continuar.
+az acr build --registry scispregistry --image "siniestros-api:latest" .
+
+
+# PASO 3: Reiniciar el contenedor para aplicar los cambios
+# ---------------------------------------------------------
+az container restart --resource-group Rg-SCISP --name siniestros-api-container
+
+
+# PASO 4: Esperar 15-20 segundos para que el contenedor inicie
+# -------------------------------------------------------------
+# Ejecuta esto para esperar:
+Start-Sleep -Seconds 15
+
+
+# PASO 5: Ver los logs del contenedor (últimas 50 líneas)
+# --------------------------------------------------------
+az container logs --resource-group Rg-SCISP --name siniestros-api-container --tail 50
+
+
+# PASO 6: Verificar el estado del contenedor
+# -------------------------------------------
+az container show --resource-group Rg-SCISP --name siniestros-api-container --query "{Estado:instanceView.state,IP:ipAddress.ip,FQDN:ipAddress.fqdn,Puerto:ipAddress.ports[0].port}" -o table
+
+
+# PASO 7: Probar la API
+# ----------------------
+# Prueba simple:
+Invoke-RestMethod -Uri "http://siniestros-api.ahcbcddvbyg4ejew.westus2.azurecontainer.io:8000/inicio"
+
+# Prueba de endpoint público:
+Invoke-RestMethod -Uri "http://siniestros-api.ahcbcddvbyg4ejew.westus2.azurecontainer.io:8000/tiposiniestro"
+
+
+# PASO 8: Ver logs en tiempo real (opcional)
+# -------------------------------------------
+# Esto mostrará los logs en tiempo real. Presiona Ctrl+C para salir.
+# az container logs --resource-group Rg-SCISP --name siniestros-api-container --follow
+
+
+# =========================================================================
+# ✅ ¡Listo! Tu API ahora acepta conexiones de CUALQUIER origen
+# =========================================================================
+# 
+# 📝 Cambios aplicados:
+#    • CORS configurado con allow_origins=["*"]
+#    • Permite todos los métodos HTTP
+#    • Permite todos los headers
+#    • No hay restricciones de origen
+#
+# 🔗 URLs de prueba:
+#    • Health Check: http://siniestros-api.ahcbcddvbyg4ejew.westus2.azurecontainer.io:8000/inicio
+#    • Documentación: http://siniestros-api.ahcbcddvbyg4ejew.westus2.azurecontainer.io:8000/docs
+#    • Endpoints públicos: /tiposiniestro, /tiposperdida, /sexos, /rangosedad, /sucursales
+#
+# 🧪 Prueba desde tu frontend:
+#    1. Asegúrate de que .env tenga:
+#       NEXT_PUBLIC_API_URL=http://siniestros-api.ahcbcddvbyg4ejew.westus2.azurecontainer.io:8000
+#    2. Reinicia el servidor de desarrollo del frontend
+#    3. Prueba hacer peticiones desde tu app
+#
+# =========================================================================

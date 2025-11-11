@@ -5,10 +5,10 @@
 
 // URL de la API - Prioridad:
 // 1. Variable de entorno NEXT_PUBLIC_API_URL
-// 2. Fallback a la URL de Azure Container Instance
+// 2. Fallback a la URL de Azure App Service (HTTPS)
 export const API_URL = 
   process.env.NEXT_PUBLIC_API_URL || 
-  'http://siniestros-api.ahcbcddvbyg4ejew.westus2.azurecontainer.io:8000';
+  'https://rg-siniestrospago-dpbxfecxaydyecdv.mexicocentral-01.azurewebsites.net';
 
 // Configuración de autenticación
 export const AUTH_CONFIG = {

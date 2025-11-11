@@ -1868,42 +1868,34 @@ async def vista_sucursales(db: Session = Depends(get_db)):
     """
     Vista de sucursales con estadísticas de siniestros
     Incluye la columna 'EstadoActivo' (estado tinyint) para filtrado
+    OPTIMIZADO: Una sola consulta con LEFT JOINs para mejor rendimiento
     """
     try:
-        # Obtener datos de la vista vista_sucursales actualizada
-        query_vista = text("""
+        # Consulta optimizada que hace todo en una sola query
+        query_optimizada = text("""
             SELECT 
-                IdCentro,
-                Sucursales,
-                TipoSucursal,
-                Zona,
-                Estado,
-                EstadoActivo,
-                Municipio
-            FROM vista_sucursales
-            ORDER BY Sucursales
+                vs.IdCentro,
+                vs.Sucursales,
+                vs.TipoSucursal,
+                vs.Zona,
+                vs.Estado,
+                vs.EstadoActivo,
+                vs.Municipio,
+                COALESCE(COUNT(DISTINCT s.IdSiniestro), 0) as total_siniestros,
+                COALESCE(SUM(CASE WHEN sd.Recuperado = 0 THEN sd.Monto ELSE 0 END), 0) as monto_perdidas
+            FROM vista_sucursales vs
+            LEFT JOIN siniestros s ON vs.IdCentro = s.IdCentro
+            LEFT JOIN siniestrosdetalles sd ON s.IdSiniestro = sd.IdSiniestros
+            GROUP BY vs.IdCentro, vs.Sucursales, vs.TipoSucursal, vs.Zona, vs.Estado, vs.EstadoActivo, vs.Municipio
+            ORDER BY vs.Sucursales
         """)
         
-        result = db.execute(query_vista)
+        result = db.execute(query_optimizada)
         sucursales_data = result.fetchall()
         
         # Formatear los datos
-        vista_sucursales = []
-        for row in sucursales_data:
-            # Para cada sucursal, calcular siniestros y montos por separado
-            total_siniestros = db.query(func.count(Siniestro.IdSiniestro)).filter(
-                Siniestro.IdCentro == row.IdCentro
-            ).scalar() or 0
-            
-            # Calcular monto total de pérdidas (solo las NO recuperadas) desde SiniestrosDetalles
-            monto_perdidas = db.query(func.sum(SiniestroDetalle.Monto)).join(
-                Siniestro, SiniestroDetalle.IdSiniestros == Siniestro.IdSiniestro
-            ).filter(
-                Siniestro.IdCentro == row.IdCentro,
-                SiniestroDetalle.Recuperado == False  # Solo pérdidas NO recuperadas
-            ).scalar() or 0
-            
-            vista_sucursales.append({
+        vista_sucursales = [
+            {
                 "IdCentro": row.IdCentro,
                 "Sucursales": row.Sucursales,
                 "TipoSucursal": row.TipoSucursal,
@@ -1911,9 +1903,11 @@ async def vista_sucursales(db: Session = Depends(get_db)):
                 "Estado": row.Estado,
                 "EstadoActivo": row.EstadoActivo,
                 "Municipio": row.Municipio,
-                "total_siniestros": total_siniestros,
-                "monto_perdidas": float(monto_perdidas)
-            })
+                "total_siniestros": row.total_siniestros,
+                "monto_perdidas": float(row.monto_perdidas)
+            }
+            for row in sucursales_data
+        ]
         
         return {
             "success": True,

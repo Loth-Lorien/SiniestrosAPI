@@ -454,13 +454,33 @@ def require_role(user: Usuario, allowed: List[str]):
 # FastAPI app & middlewares
 # ========================
 
-app = FastAPI(title="Microservicio Siniestros")
+app = FastAPI(
+    title="Microservicio Siniestros",
+    docs_url="/docs",
+    redoc_url="/redoc",
+    openapi_url="/openapi.json"
+)
+
+# 🌐 CORS CONFIGURACIÓN PERMISIVA - Permite Vercel, Azure y desarrollo local
+# IMPORTANTE: Vercel usa HTTPS, Azure Container Instance usa HTTP
+# Permitir TODOS los orígenes temporalmente para que funcione el Mixed Content (HTTPS->HTTP)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_origins=[
+        "https://siniestros-api.vercel.app",  # ✅ Tu app de Vercel específica
+        "https://siniestros-api-https.vercel.app",  # ✅ Tu frontend de Vercel https específico
+        "https://*.vercel.app",                # ✅ Otros deploys de Vercel
+        "http://localhost:3000",               # ✅ Frontend local
+        "http://localhost:8000",               # ✅ API local
+        "http://127.0.0.1:3000",
+        "http://127.0.0.1:8000",
+        "*"                                     # 🔓 Permite todos (para Mixed Content)
+    ],
+    allow_credentials=True,              # ✅ Permite credenciales (Basic Auth)
+    allow_methods=["*"],                 # ✅ Todos los métodos HTTP (GET, POST, PUT, DELETE, OPTIONS)
+    allow_headers=["*"],                 # ✅ Todos los headers (Authorization, Content-Type, etc.)
+    expose_headers=["*"],                # ✅ Expone todos los headers en la respuesta
+    max_age=3600,                        # ⏱️ Cachea preflight requests por 1 hora
 )
 
 

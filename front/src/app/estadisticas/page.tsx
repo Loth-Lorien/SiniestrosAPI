@@ -118,10 +118,10 @@ export default function EstadisticasPage() {
     try {
       setCargando(true);
       const [estadisticasRes, porTipoRes, porZonaRes, sucursalesRes] = await Promise.all([
-        api.get<EstadisticasGenerales>('/estadisticas/generales', { timeout: 5000 }),
-        api.get<EstadisticaPorTipo[]>('/estadisticas/por-tipo', { timeout: 5000 }),
-        api.get<EstadisticaPorZona[]>('/estadisticas/por-zona', { timeout: 5000 }),
-        api.get<{ data: Sucursal[] }>('/vista_sucursales', { timeout: 5000 })
+        api.get<EstadisticasGenerales>('/estadisticas/generales', { timeout: 30000 }),
+        api.get<EstadisticaPorTipo[]>('/estadisticas/por-tipo', { timeout: 30000 }),
+        api.get<EstadisticaPorZona[]>('/estadisticas/por-zona', { timeout: 30000 }),
+        api.get<{ data: Sucursal[] }>('/vista_sucursales', { timeout: 30000 })
       ]);
 
       setEstadisticasGenerales(estadisticasRes.data);

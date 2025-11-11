@@ -122,7 +122,7 @@ export default function DashboardRealPage() {
       // Cargar estadísticas generales con timeout
       const statsResponse = await fetch(`${API_URL}/estadisticas/generales`, {
         headers,
-        signal: AbortSignal.timeout(5000) // Timeout de 5 segundos
+        signal: AbortSignal.timeout(30000) // Timeout de 5 segundos
       });
 
       if (!statsResponse.ok) {

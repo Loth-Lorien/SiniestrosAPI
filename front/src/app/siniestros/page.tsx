@@ -251,7 +251,7 @@ export default function SiniestrosPage() {
       // Cargar siniestros con timeout
       const siniestrosResponse = await fetch(`${API_URL}/siniestros`, {
         headers,
-        signal: AbortSignal.timeout(5000) // Timeout de 5 segundos
+        signal: AbortSignal.timeout(30000) // Timeout de 5 segundos
       });
 
       if (!siniestrosResponse.ok) {
@@ -316,23 +316,23 @@ export default function SiniestrosPage() {
       const [tiposSiniestroRes, tiposPerdidaRes, sexosRes, rangosEdadRes, sucursalesRes] = await Promise.all([
         fetch(`${API_URL}/tiposiniestro`, { 
           headers,
-          signal: AbortSignal.timeout(5000) 
+          signal: AbortSignal.timeout(30000) 
         }),
         fetch(`${API_URL}/tiposperdida`, { 
           headers,
-          signal: AbortSignal.timeout(5000) 
+          signal: AbortSignal.timeout(30000) 
         }),
         fetch(`${API_URL}/sexos`, { 
           headers,
-          signal: AbortSignal.timeout(5000) 
+          signal: AbortSignal.timeout(30000) 
         }),
         fetch(`${API_URL}/rangosedad`, { 
           headers,
-          signal: AbortSignal.timeout(5000) 
+          signal: AbortSignal.timeout(30000) 
         }),
         fetch(`${API_URL}/sucursales`, { 
           headers,
-          signal: AbortSignal.timeout(5000) 
+          signal: AbortSignal.timeout(30000) 
         })
       ]);
 
@@ -626,7 +626,7 @@ export default function SiniestrosPage() {
 
       const response = await fetch(`${API_URL}/siniestros/${siniestroId}`, {
         headers,
-        signal: AbortSignal.timeout(5000)
+        signal: AbortSignal.timeout(30000)
       });
 
       if (!response.ok) {
@@ -698,7 +698,7 @@ export default function SiniestrosPage() {
 
       const response = await fetch(`${API_URL}/siniestros/${siniestroId}`, {
         headers,
-        signal: AbortSignal.timeout(5000)
+        signal: AbortSignal.timeout(30000)
       });
 
       if (!response.ok) {

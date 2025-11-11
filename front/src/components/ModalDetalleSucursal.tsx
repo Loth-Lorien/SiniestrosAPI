@@ -203,7 +203,7 @@ export default function ModalDetalleSucursal({ isOpen, onClose, idCentro }: Moda
       const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://rg-siniestrospago-dpbxfecxaydyecdv.mexicocentral-01.azurewebsites.net';
       const response = await fetch(`${API_URL}/siniestros/${id}`, {
         headers,
-        signal: AbortSignal.timeout(5000)
+        signal: AbortSignal.timeout(30000)
       });
       if (!response.ok) {
         throw new Error(`Error cargando detalle: ${response.status}`);

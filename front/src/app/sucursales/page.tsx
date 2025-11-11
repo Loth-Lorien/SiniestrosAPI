@@ -103,7 +103,7 @@ export default function SucursalesPage() {
       // Cargar sucursales con timeout
       const sucursalesResponse = await fetch(`${API_URL}/vista_sucursales`, {
         headers,
-        signal: AbortSignal.timeout(5000) // Timeout de 5 segundos
+        signal: AbortSignal.timeout(30000) // Timeout de 5 segundos
       });
 
       if (!sucursalesResponse.ok) {

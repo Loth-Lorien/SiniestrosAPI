@@ -113,7 +113,9 @@ export default function SucursalesPage() {
           router.push('/login');
           return;
         }
-        throw new Error(`Error cargando sucursales: ${sucursalesResponse.status}`);
+        // Si es un error 500 o similar, mostrar el error pero NO redirigir al login
+        const errorData = await sucursalesResponse.json().catch(() => ({ detail: 'Error desconocido' }));
+        throw new Error(errorData.detail || `Error del servidor: ${sucursalesResponse.status}`);
       }
 
       const sucursalesData = await sucursalesResponse.json();
@@ -124,27 +126,17 @@ export default function SucursalesPage() {
     } catch (err: any) {
       console.error('❌ Error cargando datos de sucursales:', err);
       
-      // Si es un error de red (backend apagado), redirigir al login
+      // Si es un error de red (backend apagado completamente)
       if (err.name === 'TypeError' && err.message.includes('fetch')) {
-        console.error('🔴 Backend no disponible - redirigiendo al login');
-        localStorage.removeItem('auth_credentials');
-        localStorage.removeItem('user_data');
-        setError('Servidor no disponible. Redirigiendo al login...');
-        setTimeout(() => {
-          router.push('/login');
-        }, 2000);
+        console.error('🔴 Backend no disponible');
+        setError('Servidor no disponible. Verifique su conexión.');
         return;
       }
       
       // Si es timeout
       if (err.name === 'TimeoutError') {
-        console.error('⏰ Timeout del servidor - redirigiendo al login');
-        localStorage.removeItem('auth_credentials');
-        localStorage.removeItem('user_data');
-        setError('Servidor no responde. Redirigiendo al login...');
-        setTimeout(() => {
-          router.push('/login');
-        }, 2000);
+        console.error('⏰ Timeout del servidor');
+        setError('El servidor está tardando demasiado en responder.');
         return;
       }
       

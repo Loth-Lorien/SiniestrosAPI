@@ -461,20 +461,20 @@ app = FastAPI(
     openapi_url="/openapi.json"
 )
 
-# 🌐 CORS CONFIGURACIÓN PERMISIVA - Permite Vercel, Azure y desarrollo local
-# IMPORTANTE: Vercel usa HTTPS, Azure Container Instance usa HTTP
-# Permitir TODOS los orígenes temporalmente para que funcione el Mixed Content (HTTPS->HTTP)
+# 🌐 CORS CONFIGURACIÓN - Permite Vercel, Azure App Service y desarrollo local
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "https://siniestros-api.vercel.app",  # ✅ Tu app de Vercel específica
         "https://siniestros-api-https.vercel.app",  # ✅ Tu frontend de Vercel https específico
         "https://*.vercel.app",                # ✅ Otros deploys de Vercel
+        "https://rg-siniestrospago-dpbxfecxaydyecdv.mexicocentral-01.azurewebsites.net",  # ✅ Azure App Service
+        "https://*.azurewebsites.net",         # ✅ Otros App Services
         "http://localhost:3000",               # ✅ Frontend local
         "http://localhost:8000",               # ✅ API local
         "http://127.0.0.1:3000",
         "http://127.0.0.1:8000",
-        "*"                                     # 🔓 Permite todos (para Mixed Content)
+        "*"                                     # 🔓 Permite todos (temporal)
     ],
     allow_credentials=True,              # ✅ Permite credenciales (Basic Auth)
     allow_methods=["*"],                 # ✅ Todos los métodos HTTP (GET, POST, PUT, DELETE, OPTIONS)

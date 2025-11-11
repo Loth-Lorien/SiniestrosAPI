@@ -2,7 +2,7 @@ import axios from 'axios';
 
 // Configuración base de axios para la API de Siniestros
 const api = axios.create({
-  baseURL: 'http://siniestros-api.ahcbcddvbyg4ejew.westus2.azurecontainer.io:8000',
+  baseURL: 'https://rg-siniestrospago-dpbxfecxaydyecdv.mexicocentral-01.azurewebsites.net',
   timeout: 10000,
   headers: {
     'Content-Type': 'application/json',

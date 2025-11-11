@@ -23,7 +23,7 @@ export default function Home() {
 
   const checkBackendStatus = async () => {
     try {
-      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://siniestros-api.ahcbcddvbyg4ejew.westus2.azurecontainer.io:8000';
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://rg-siniestrospago-dpbxfecxaydyecdv.mexicocentral-01.azurewebsites.net';
       const response = await fetch(`${API_URL}/`, { method: 'GET' });
       setBackendStatus(response.ok ? 'connected' : 'disconnected');
     } catch (error) {

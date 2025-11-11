@@ -1,6 +1,9 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
+import Link from 'next/link';
+import '../globals.css';
+import { API_URL } from '@/lib/config';
 import { useRouter } from 'next/navigation';
 import { 
   FiUser, 
@@ -31,7 +34,7 @@ export default function LoginRealPage() {
     const testConnection = async () => {
       setTestingConnection(true);
       try {
-        const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://siniestros-api.ahcbcddvbyg4ejew.westus2.azurecontainer.io:8000';
+        const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://rg-siniestrospago-dpbxfecxaydyecdv.mexicocentral-01.azurewebsites.net';
         const response = await fetch(`${API_URL}/`, {
           method: 'GET',
           headers: { 'Content-Type': 'application/json' }
@@ -75,7 +78,7 @@ export default function LoginRealPage() {
       
       // Crear credenciales HTTP Basic Auth
       const basicAuth = btoa(`${formData.usuario}:${formData.password}`);
-      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://siniestros-api.ahcbcddvbyg4ejew.westus2.azurecontainer.io:8000';
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://rg-siniestrospago-dpbxfecxaydyecdv.mexicocentral-01.azurewebsites.net';
       
       // Probar autenticación con un endpoint protegido
       const response = await fetch(`${API_URL}/usuarios`, {

@@ -98,7 +98,7 @@ export default function SucursalesPage() {
 
       console.log('🏢 Cargando datos de sucursales...');
 
-      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://siniestros-api.ahcbcddvbyg4ejew.westus2.azurecontainer.io:8000';
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://rg-siniestrospago-dpbxfecxaydyecdv.mexicocentral-01.azurewebsites.net';
 
       // Cargar sucursales con timeout
       const sucursalesResponse = await fetch(`${API_URL}/vista_sucursales`, {
@@ -176,7 +176,7 @@ export default function SucursalesPage() {
       const { username, password } = JSON.parse(authData);
       const basicAuth = btoa(`${username}:${password}`);
 
-      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://siniestros-api.ahcbcddvbyg4ejew.westus2.azurecontainer.io:8000';
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://rg-siniestrospago-dpbxfecxaydyecdv.mexicocentral-01.azurewebsites.net';
 
       const response = await fetch(`${API_URL}/sucursal_ubicacion/${idCentro}`, {
         method: 'GET',

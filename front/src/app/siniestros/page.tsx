@@ -246,7 +246,7 @@ export default function SiniestrosPage() {
 
       console.log('📊 Cargando datos de siniestros...');
 
-      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://siniestros-api.ahcbcddvbyg4ejew.westus2.azurecontainer.io:8000';
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://rg-siniestrospago-dpbxfecxaydyecdv.mexicocentral-01.azurewebsites.net';
 
       // Cargar siniestros con timeout
       const siniestrosResponse = await fetch(`${API_URL}/siniestros`, {
@@ -320,7 +320,7 @@ export default function SiniestrosPage() {
 
       console.log('📥 Cargando opciones del formulario...');
 
-      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://siniestros-api.ahcbcddvbyg4ejew.westus2.azurecontainer.io:8000';
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://rg-siniestrospago-dpbxfecxaydyecdv.mexicocentral-01.azurewebsites.net';
 
       // Cargar todos los datos en paralelo
       const [tiposSiniestroRes, tiposPerdidaRes, sexosRes, rangosEdadRes, sucursalesRes] = await Promise.all([
@@ -430,7 +430,7 @@ export default function SiniestrosPage() {
       // Crear un nuevo objeto sin Content-Type para que el navegador lo establezca automáticamente
       const { 'Content-Type': _, ...headersWithoutContentType } = headers;
 
-      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://siniestros-api.ahcbcddvbyg4ejew.westus2.azurecontainer.io:8000';
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://rg-siniestrospago-dpbxfecxaydyecdv.mexicocentral-01.azurewebsites.net';
 
       const fotoResponse = await fetch(
         `${API_URL}/siniestros/${idSiniestro}/foto/subir`,
@@ -474,7 +474,7 @@ export default function SiniestrosPage() {
       console.log('📝 Creando nuevo siniestro...');
       console.log('Datos del siniestro:', nuevoSiniestro);
 
-      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://siniestros-api.ahcbcddvbyg4ejew.westus2.azurecontainer.io:8000';
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://rg-siniestrospago-dpbxfecxaydyecdv.mexicocentral-01.azurewebsites.net';
 
       const response = await fetch(`${API_URL}/siniestros`, {
         method: 'POST',
@@ -515,7 +515,7 @@ export default function SiniestrosPage() {
         try {
           console.log('📄 Creando boletín para el siniestro...');
           
-          const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://siniestros-api.ahcbcddvbyg4ejew.westus2.azurecontainer.io:8000';
+          const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://rg-siniestrospago-dpbxfecxaydyecdv.mexicocentral-01.azurewebsites.net';
           
           // Crear boletín usando parámetros de query
           const boletinText = encodeURIComponent(nuevoSiniestro.boletin.boletin);
@@ -632,7 +632,7 @@ export default function SiniestrosPage() {
 
       console.log(`📝 Cargando siniestro ${siniestroId} para editar...`);
 
-      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://siniestros-api.ahcbcddvbyg4ejew.westus2.azurecontainer.io:8000';
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://rg-siniestrospago-dpbxfecxaydyecdv.mexicocentral-01.azurewebsites.net';
 
       const response = await fetch(`${API_URL}/siniestros/${siniestroId}`, {
         headers,
@@ -704,7 +704,7 @@ export default function SiniestrosPage() {
 
       console.log(`👁️ Cargando detalle completo del siniestro ${siniestroId}...`);
 
-      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://siniestros-api.ahcbcddvbyg4ejew.westus2.azurecontainer.io:8000';
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://rg-siniestrospago-dpbxfecxaydyecdv.mexicocentral-01.azurewebsites.net';
 
       const response = await fetch(`${API_URL}/siniestros/${siniestroId}`, {
         headers,
@@ -749,7 +749,7 @@ export default function SiniestrosPage() {
 
       console.log(`🗑️ Eliminando siniestro ${deletingSiniestroId}...`);
 
-      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://siniestros-api.ahcbcddvbyg4ejew.westus2.azurecontainer.io:8000';
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://rg-siniestrospago-dpbxfecxaydyecdv.mexicocentral-01.azurewebsites.net';
 
       const response = await fetch(`${API_URL}/siniestros/${deletingSiniestroId}`, {
         method: 'DELETE',
@@ -813,7 +813,7 @@ export default function SiniestrosPage() {
       console.log('📝 Actualizando siniestro...', editingSiniestroId);
       console.log('Datos de actualización:', editarSiniestro);
 
-      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://siniestros-api.ahcbcddvbyg4ejew.westus2.azurecontainer.io:8000';
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://rg-siniestrospago-dpbxfecxaydyecdv.mexicocentral-01.azurewebsites.net';
 
       const response = await fetch(`${API_URL}/siniestros/${editingSiniestroId}`, {
         method: 'PUT',
@@ -873,7 +873,7 @@ export default function SiniestrosPage() {
       const authHeaders = getAuthHeaders();
       console.log('🔑 Headers de autenticación:', authHeaders);
       
-      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://siniestros-api.ahcbcddvbyg4ejew.westus2.azurecontainer.io:8000';
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://rg-siniestrospago-dpbxfecxaydyecdv.mexicocentral-01.azurewebsites.net';
       
       const response = await fetch(`${API_URL}/siniestros/${siniestroId}/boletin/pdf`, {
         method: 'GET',

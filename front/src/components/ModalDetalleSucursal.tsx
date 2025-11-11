@@ -153,7 +153,7 @@ export default function ModalDetalleSucursal({ isOpen, onClose, idCentro }: Moda
       if (!headers) {
         throw new Error('No hay credenciales válidas');
       }
-      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://siniestros-api.ahcbcddvbyg4ejew.westus2.azurecontainer.io:8000';
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://rg-siniestrospago-dpbxfecxaydyecdv.mexicocentral-01.azurewebsites.net';
       const response = await fetch(`${API_URL}/sucursal_detalle/${idCentro}`, {
         headers,
         signal: AbortSignal.timeout(10000)
@@ -200,7 +200,7 @@ export default function ModalDetalleSucursal({ isOpen, onClose, idCentro }: Moda
       setLoading(true);
       const headers = getAuthHeaders();
       if (!headers) return;
-      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://siniestros-api.ahcbcddvbyg4ejew.westus2.azurecontainer.io:8000';
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://rg-siniestrospago-dpbxfecxaydyecdv.mexicocentral-01.azurewebsites.net';
       const response = await fetch(`${API_URL}/siniestros/${id}`, {
         headers,
         signal: AbortSignal.timeout(5000)

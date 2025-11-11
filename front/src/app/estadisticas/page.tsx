@@ -46,7 +46,7 @@ interface EstadisticaPorZona {
 
 
 // Configurar axios
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://siniestros-api.ahcbcddvbyg4ejew.westus2.azurecontainer.io:8000';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://rg-siniestrospago-dpbxfecxaydyecdv.mexicocentral-01.azurewebsites.net';
 const api = axios.create({
   baseURL: API_URL,
 });

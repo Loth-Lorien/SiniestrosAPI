@@ -117,7 +117,7 @@ export default function DashboardRealPage() {
 
       console.log('📊 Cargando datos del dashboard...');
 
-      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://siniestros-api.ahcbcddvbyg4ejew.westus2.azurecontainer.io:8000';
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://rg-siniestrospago-dpbxfecxaydyecdv.mexicocentral-01.azurewebsites.net';
 
       // Cargar estadísticas generales con timeout
       const statsResponse = await fetch(`${API_URL}/estadisticas/generales`, {

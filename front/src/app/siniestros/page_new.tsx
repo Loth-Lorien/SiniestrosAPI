@@ -113,7 +113,7 @@ export default function SiniestrosPage() {
 
       console.log('📊 Cargando datos de siniestros...');
 
-      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://siniestros-api.ahcbcddvbyg4ejew.westus2.azurecontainer.io:8000';
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://rg-siniestrospago-dpbxfecxaydyecdv.mexicocentral-01.azurewebsites.net';
 
       // Cargar siniestros
       const siniestrosResponse = await fetch(`${API_URL}/siniestros`, {

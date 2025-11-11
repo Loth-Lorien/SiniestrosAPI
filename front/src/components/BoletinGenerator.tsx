@@ -54,7 +54,7 @@ export default function BoletinGenerator({
       }
 
       // Enviar foto a ruta correcta
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://siniestros-api.ahcbcddvbyg4ejew.westus2.azurecontainer.io:8000';
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://rg-siniestrospago-dpbxfecxaydyecdv.mexicocentral-01.azurewebsites.net';
       const response = await fetch(
         `${apiUrl}/siniestros/${idSiniestro}/foto/subir`,
         {
@@ -102,7 +102,7 @@ export default function BoletinGenerator({
       }
 
       // URL de descarga
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://siniestros-api.ahcbcddvbyg4ejew.westus2.azurecontainer.io:8000';
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://rg-siniestrospago-dpbxfecxaydyecdv.mexicocentral-01.azurewebsites.net';
       const response = await fetch(
         `${apiUrl}/siniestros/${idSiniestro}/boletin/generar?formato=${formato}`,
         {
